@@ -1,0 +1,130 @@
+{% load static coordination_tags %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1F2328">
+  <title>{% block title %}BuildLink â€” Construction workforce coordination in Freetown{% endblock %}</title>
+  <link rel="icon" href="{% static 'coordination/brand/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'coordination/site.css' %}?v=brand-3">
+  <script src="{% static 'coordination/site.js' %}?v=brand-3" defer></script>
+  <script src="{% static 'coordination/operations.js' %}?v=brand-3" defer></script>
+  <link rel="manifest" href="{% url 'web_manifest' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% if user.is_authenticated %}workspace-body{% else %}public-body{% endif %}"{% if user.is_authenticated %} data-user-id="{{ user.pk }}" data-service-worker="{% url 'service_worker' %}" data-session-guard data-idle-timeout="1800" data-warning-seconds="120" data-heartbeat-url="{% url 'session_heartbeat' %}" data-login-url="{% url 'login' %}?expired=1"{% endif %}>
+  {% include 'coordination/_icons.html' %}
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  {% if user.is_authenticated %}
+  <div class="portal-shell">
+    <button class="sidebar-backdrop" type="button" data-sidebar-close aria-label="Close navigation"></button>
+    <aside class="portal-sidebar" id="portal-sidebar" aria-label="Workspace navigation">
+      <a class="brand sidebar-brand" href="{% url 'dashboard' %}">{% include 'coordination/_logo_mark.html' %}<span>BuildLink<small>CONSTRUCTION WORKFORCE</small></span></a>
+
+      <div class="workspace-identity">
+        <span class="workspace-avatar">{% if user.first_name %}{{ user.first_name|slice:':1'|upper }}{% else %}{{ user.username|slice:':1'|upper }}{% endif %}</span>
+        <span><strong>{% if user.role == 'admin' %}Administration{% elif user.role == 'client' %}Client workspace{% elif user.company_scope %}{{ user.company_scope.name|truncatechars:24 }}{% else %}Company workspace{% endif %}</strong><small>{{ user.get_role_display }}</small></span>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        {% for section in nav_sections %}
+          <span class="sidebar-section-label{% if not forloop.first %} sidebar-section-spaced{% endif %}">{{ section.label|upper }}</span>
+          {% for link in section.links %}<a class="sidebar-link{% if link.active %} is-active{% endif %}" href="{{ link.url }}"{% if link.active %} aria-current="page"{% endif %}>{% icon link.icon 'sidebar-icon' %}<span>{{ link.label }}</span></a>{% endfor %}
+        {% endfor %}
+        <a class="sidebar-link{% if notifications_link.active %} is-active{% endif %}" href="{{ notifications_link.url }}">{% icon 'bell' 'sidebar-icon' %}<span>Notifications</span>{% if unread_notification_count %}<span class="sidebar-count">{{ unread_notification_count }}</span>{% endif %}</a>
+      </nav>
+
+      <div class="session-status-card">
+        <span class="session-status-indicator"></span>
+        <div><strong>Secure session</strong><small>Signs out after 30 minutes idle</small></div>
+      </div>
+
+      <div class="sidebar-account">
+        <span class="account-avatar">{% if user.first_name %}{{ user.first_name|slice:':1'|upper }}{% else %}{{ user.username|slice:':1'|upper }}{% endif %}</span>
+        <span class="account-copy"><strong>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</strong><small>{{ user.email }}</small></span>
+        <form method="post" action="{% url 'logout' %}" class="sidebar-logout-form" data-logout-form>{% csrf_token %}<button type="submit" class="sidebar-logout" aria-label="Sign out" title="Sign out">{% icon 'logout' %}</button></form>
+      </div>
+    </aside>
+
+    <div class="portal-main">
+      <header class="portal-topbar">
+        <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-controls="portal-sidebar" aria-expanded="false" aria-label="Open navigation">{% icon 'menu' %}</button>
+        <div class="topbar-context">
+          <strong class="topbar-title">{{ page_title }}</strong>
+          {% if breadcrumbs %}<nav class="breadcrumbs" aria-label="Breadcrumb"><ol>{% for label, url in breadcrumbs %}<li>{% if url %}<a href="{{ url }}">{{ label|truncatechars:32 }}</a>{% else %}<span aria-current="page">{{ label|truncatechars:32 }}</span>{% endif %}</li>{% endfor %}</ol></nav>{% endif %}
+        </div>
+        <div class="topbar-actions">
+          {% if header_projects %}<form class="project-switcher" method="get" action="{% url 'project_jump' %}" data-project-switcher>
+            <label class="visually-hidden" for="project-switcher">Go to project</label>
+            {% icon 'crane' 'project-switcher-icon' %}
+            <select id="project-switcher" name="project">
+              <option value="">{% if current_project_id %}Switch project{% else %}All projects{% endif %}</option>
+              {% for item in header_projects %}<option value="{{ item.pk }}"{% if item.pk == current_project_id %} selected{% endif %}>{{ item.title }}</option>{% endfor %}
+            </select>
+            <button class="visually-hidden" type="submit">Go</button>
+          </form>{% endif %}
+          {% if request.resolver_match.url_name != 'dashboard' %}<button class="history-back" type="button" data-history-back data-home-url="{% url 'home' %}" aria-label="Go back" title="Go back">{% icon 'back' %}</button>{% endif %}
+          <span class="sync-status" data-sync-status title="Connection status"><i></i><span data-sync-label>Online</span></span>
+          <a class="topbar-notifications" href="{% url 'notifications' %}" aria-label="Notifications{% if unread_notification_count %}, {{ unread_notification_count }} unread{% endif %}">{% icon 'bell' %}{% if unread_notification_count %}<b>{{ unread_notification_count }}</b>{% endif %}</a>
+          <a class="topbar-profile" href="{% if user.role == 'client' %}{% url 'profile' %}{% elif user.role == 'company' %}{% url 'company_profile_edit' %}{% else %}{% url 'dashboard' %}{% endif %}">
+            <span class="account-avatar">{% if user.first_name %}{{ user.first_name|slice:':1'|upper }}{% else %}{{ user.username|slice:':1'|upper }}{% endif %}</span>
+            <span class="topbar-profile-copy"><strong>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</strong><small>{{ user.get_role_display }}</small></span>
+          </a>
+        </div>
+      </header>
+
+      <section class="session-warning" data-session-warning hidden role="alert" aria-live="assertive" aria-labelledby="session-warning-title" aria-describedby="session-warning-copy">
+        <span class="session-warning-icon" aria-hidden="true">!</span>
+        <div class="session-warning-copy"><strong id="session-warning-title">Still working?</strong><p id="session-warning-copy">Youâ€™ll be signed out in <b data-session-countdown>2:00</b> because of inactivity.</p></div>
+        <button class="button button-dark session-stay-button" type="button" data-session-stay>Stay signed in</button>
+        <button class="session-signout-link" type="button" data-session-signout>Sign out</button>
+      </section>
+
+  {% else %}
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="{% url 'home' %}">{% include 'coordination/_logo_mark.html' %}<span>BuildLink<small>CONSTRUCTION WORKFORCE</small></span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">Menu</button>
+      <nav class="main-nav" id="main-nav" aria-label="Main navigation">
+        <a href="{% url 'company_directory' %}">Find a company</a>
+        <a href="{% url 'home' %}#how-it-works">How it works</a>
+        <a href="{% url 'login' %}">Log in</a>
+        <a class="button button-accent" href="{% url 'register_client' %}">Create account <span aria-hidden="true">â†’</span></a>
+      </nav>
+      {% if request.resolver_match.url_name != 'home' %}<button class="history-back" type="button" data-history-back data-home-url="{% url 'home' %}" aria-label="Go back" title="Go back">{% icon 'back' %}</button>{% endif %}
+    </div>
+  </header>
+  {% endif %}
+
+  {% if user.is_authenticated %}<main id="main" class="portal-content" tabindex="-1">{% else %}<main id="main" tabindex="-1">{% endif %}
+    {% if messages %}<div class="{% if not user.is_authenticated %}container {% endif %}flash-stack" role="status" data-flash-stack>{% for message in messages %}<div class="flash flash-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    {% block content %}{% endblock %}
+    {% include 'coordination/_pagination.html' %}
+  </main>
+  {% if user.is_authenticated %}
+      <footer class="portal-footer"><span>BuildLink <span aria-hidden="true">Â·</span> Construction workforce coordination</span><span>Secure access enabled</span></footer>
+    </div>
+    <nav class="bottom-nav" aria-label="Quick navigation">
+      {% for link in bottom_nav %}<a class="bottom-nav-link{% if link.active %} is-active{% endif %}" href="{{ link.url }}"{% if link.active %} aria-current="page"{% endif %}>{% icon link.icon %}<span>{{ link.label|truncatechars:14 }}</span></a>{% endfor %}
+      <button class="bottom-nav-link" type="button" data-sidebar-toggle aria-controls="portal-sidebar" aria-expanded="false">{% icon 'menu' %}<span>Menu</span>{% if unread_notification_count %}<b class="bottom-nav-dot" aria-label="{{ unread_notification_count }} unread notifications"></b>{% endif %}</button>
+    </nav>
+  </div>
+  {% else %}
+    <footer class="footer"><div class="container footer-inner"><a class="brand footer-brand" href="{% url 'home' %}">{% include 'coordination/_logo_mark.html' %}<span>BuildLink<small>CONSTRUCTION WORKFORCE</small></span></a><p>Connecting construction work across Freetown.</p><span>Â© {% now 'Y' %} BuildLink</span></div></footer>
+  {% endif %}
+  <dialog class="confirm-dialog" data-confirm-dialog aria-labelledby="confirm-dialog-title">
+    <form method="dialog">
+      <span class="confirm-dialog-icon" aria-hidden="true">{% icon 'alert' %}</span>
+      <h2 id="confirm-dialog-title">Are you sure?</h2>
+      <p data-confirm-message></p>
+      <div class="confirm-dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-danger" value="confirm" data-confirm-accept>Confirm</button></div>
+    </form>
+  </dialog>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

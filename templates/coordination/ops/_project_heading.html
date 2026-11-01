@@ -1,0 +1,9 @@
+{% load coordination_tags %}<section class="page-heading">
+  <div class="container">
+    <div class="eyebrow"><a href="{% url 'project_list' %}">PROJECTS</a> / PROJECT {{ project.id }}</div>
+    <div class="detail-title-row">
+      <div><h1>{{ project.title }}</h1><p>{{ project.company.name }} · {{ project.location }} · {{ project.progress_percentage }}% complete</p></div>
+      <span class="status-pill status-{{ project.status }}"><span></span>{{ project.get_status_display }}</span>
+    </div>
+  </div>
+</section>

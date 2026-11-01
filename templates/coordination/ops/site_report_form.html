@@ -1,0 +1,13 @@
+{% extends 'coordination/base.html' %}
+{% block title %}Daily report · {{ project.title }} — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="container page-heading-inner"><div><div class="eyebrow">{{ project.title }}</div><h1>Daily site report</h1><p>No signal on site? Submit anyway — the report is kept on this phone and sent when you reconnect.</p></div></div></section>
+<section class="container form-page">
+  <form method="post" enctype="multipart/form-data" class="form-card" data-validate data-offline-queue data-offline-label="Site report for {{ project.title }}">{% csrf_token %}
+    <input type="hidden" name="client_uuid" data-client-uuid>
+    {% include 'coordination/_form_alert.html' %}
+    {% include 'coordination/_form_sections.html' %}
+    <footer class="form-card-footer"><p class="form-legend"><span class="required" aria-hidden="true">*</span> Required field</p><div class="form-card-actions"><a class="button button-quiet" href="{% url 'site_report_list' project.id %}">Cancel</a><button class="button button-dark" type="submit">Submit report <span aria-hidden="true">→</span></button></div></footer>
+  </form>
+</section>
+{% endblock %}

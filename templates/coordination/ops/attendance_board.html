@@ -1,0 +1,68 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{{ project.title }} · Attendance — BuildLink{% endblock %}
+{% block content %}
+{% include 'coordination/ops/_project_heading.html' %}
+{% include 'coordination/ops/_project_nav.html' %}
+<section class="container section ops-stack">
+  <div class="toolbar">
+    <nav class="day-picker" aria-label="Choose a day">
+      <a class="button button-small button-quiet" href="?date={{ previous_day|date:'Y-m-d' }}" aria-label="Previous day">←</a>
+      <strong>{% if is_today %}Today, {% endif %}{{ day|date:'l d F Y' }}</strong>
+      {% if not is_today %}<a class="button button-small button-quiet" href="?date={{ next_day|date:'Y-m-d' }}" aria-label="Next day">→</a><a class="text-link" href="?">Today</a>{% endif %}
+    </nav>
+    {% if is_today %}<a class="button button-dark" href="{% url 'attendance_scanner' project.id %}">{% icon 'qr' %} Scan QR cards</a>{% endif %}
+  </div>
+
+  <div class="stats-grid stats-grid-three">
+    <div class="stat-card"><span>Team</span><strong>{{ rows|length }}</strong><small>Active on this project</small></div>
+    <div class="stat-card"><span>Present</span><strong>{{ present }}</strong><small>{% if rows %}{% widthratio present rows|length 100 %}% of the team{% else %}No team yet{% endif %}</small></div>
+    <div class="stat-card"><span>On site now</span><strong>{{ on_site }}</strong><small>Clocked in, not yet out</small></div>
+  </div>
+
+  <div class="panel table-panel">
+    <div class="panel-heading"><div><div class="eyebrow">DAILY REGISTER</div><h2>Attendance</h2></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Worker</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Verification</th><th>Recorded by</th></tr></thead>
+        <tbody>
+        {% for row in rows %}{% with record=row.record %}
+          <tr>
+            <td><strong>{{ row.worker.full_name }}</strong><small class="table-sub">{{ row.worker.worker_id }} · {{ row.worker.primary_trade }}</small></td>
+            <td>{% if record %}<span class="status-chip status-{% if record.is_open %}on_site{% else %}{{ record.status }}{% endif %}">{% if record.is_open %}On site{% else %}{{ record.get_status_display }}{% endif %}</span>{% if record.note %}<small class="table-sub">{{ record.note }}</small>{% endif %}{% else %}<span class="status-chip status-not_recorded">Not recorded</span>{% endif %}</td>
+            <td>{{ record.clock_in|time:'H:i'|default:'—' }}</td>
+            <td>{{ record.clock_out|time:'H:i'|default:'—' }}</td>
+            <td>{% if record and record.hours_worked %}{{ record.hours_worked }} h{% else %}—{% endif %}</td>
+            <td>{% if record.clock_in %}{% if record.method == 'gps' %}<span class="verify-badge verify-gps" title="Location checked against the site boundary">{% icon 'gps' %} GPS verified{% if record.clock_in_distance_m is not None %} · {{ record.clock_in_distance_m }} m{% endif %}</span>{% elif record.method == 'qr' %}<span class="verify-badge verify-qr" title="QR card scanned by a supervisor on site">{% icon 'qr' %} QR scanned{% if record.clock_in_distance_m is not None %} · {{ record.clock_in_distance_m }} m{% endif %}</span>{% else %}<span class="verify-badge verify-manual" title="Entered by a supervisor without GPS or QR">{% icon 'alert' %} Manual entry</span>{% endif %}{% if record.synced_offline %}<small class="table-sub">{% icon 'sync' %} Synced from offline</small>{% endif %}{% else %}—{% endif %}</td>
+            <td>{% if record %}{{ record.recorded_by|person_name }}{% else %}—{% endif %}</td>
+          </tr>
+        {% endwith %}{% empty %}
+          <tr><td colspan="7"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No team on this project</h3><p>Assign workers to tasks, or to the project team on the Overview tab.</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if rows %}<div class="ops-columns">
+    <article class="panel form-panel">
+      <div class="eyebrow">NO PHONE OR CARD?</div><h2>Manual clock in / out</h2>
+      <p class="muted">Use only when GPS or QR is not possible. The reason is kept in the audit log.</p>
+      <form method="post" class="form-stack" data-validate>{% csrf_token %}<input type="hidden" name="action" value="manual">
+        {% include 'coordination/_form_alert.html' with form=manual_form %}
+        {% include 'coordination/_field.html' with field=manual_form.worker %}
+        {% include 'coordination/_field.html' with field=manual_form.note %}
+        <button class="button button-outline" type="submit">Record clock in / out</button>
+      </form>
+    </article>
+    <article class="panel form-panel">
+      <div class="eyebrow">ABSENCE</div><h2>Mark absent or on leave</h2>
+      <p class="muted">Absences show in attendance trends and are never paid.</p>
+      <form method="post" class="form-stack" data-validate>{% csrf_token %}<input type="hidden" name="action" value="absence">
+        {% include 'coordination/_form_alert.html' with form=absence_form %}
+        <div class="field-grid">{% for field in absence_form %}{% include 'coordination/_field.html' %}{% endfor %}</div>
+        <button class="button button-outline" type="submit">Save absence</button>
+      </form>
+    </article>
+  </div>{% endif %}
+</section>
+{% endblock %}

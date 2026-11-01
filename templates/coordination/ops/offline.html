@@ -1,0 +1,15 @@
+{% extends 'coordination/base.html' %}
+{% block title %}Offline — BuildLink{% endblock %}
+{% block content %}
+<section class="container section offline-page">
+  <div class="panel">
+    <div class="empty-state">
+      <span class="empty-icon" aria-hidden="true"></span>
+      <h3>You are offline</h3>
+      <p>This page has not been saved for offline use. Clock-in and daily site reports still work offline if you opened them before losing signal; anything you submit is sent when you reconnect.</p>
+      <p class="muted" data-offline-queue-count></p>
+      <button class="button button-outline" type="button" data-reload>Try again</button>
+    </div>
+  </div>
+</section>
+{% endblock %}

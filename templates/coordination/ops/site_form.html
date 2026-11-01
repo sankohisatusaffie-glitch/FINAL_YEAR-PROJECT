@@ -1,0 +1,18 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{% if site %}Edit site{% else %}Add a site{% endif %} — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="container page-heading-inner"><div><div class="eyebrow">{{ project.title }}</div><h1>{% if site %}Edit {{ site.name }}{% else %}Add a site{% endif %}</h1><p>Stand on site and use your location to set the attendance boundary accurately.</p></div></div></section>
+<section class="container form-page">
+  <form method="post" class="form-card" data-validate>{% csrf_token %}
+    {% include 'coordination/_form_alert.html' %}
+    {% include 'coordination/_form_sections.html' %}
+    <div class="form-section form-section-tool"><div class="form-section-inner"><div></div>
+      <div class="location-tool">
+        <button class="button button-outline" type="button" data-fill-location data-lat-field="id_latitude" data-lng-field="id_longitude">{% icon 'gps' %} Use my current location</button>
+        <p class="field-help" data-location-status aria-live="polite">Your browser will ask for permission. Accuracy is usually 5–30 m outdoors.</p>
+      </div>
+    </div></div>
+    <footer class="form-card-footer"><p class="form-legend"><span class="required" aria-hidden="true">*</span> Required field</p><div class="form-card-actions"><a class="button button-quiet" href="{% url 'project_plan' project.id %}">Cancel</a><button class="button button-dark" type="submit">Save site <span aria-hidden="true">→</span></button></div></footer>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{{ project.title }} · Incidents — BuildLink{% endblock %}
+{% block content %}
+{% include 'coordination/ops/_project_heading.html' %}
+{% include 'coordination/ops/_project_nav.html' %}
+<section class="container section ops-stack">
+  <div class="safety-banner"><span class="safety-banner-icon">{% icon 'cone' %}</span><div><strong>Report every accident, near miss and PPE breach</strong><p>High and critical incidents alert the project team by SMS and email straight away.</p></div><a class="button button-danger" href="{% url 'incident_create' project.id %}">{% icon 'alert' %} Report incident</a></div>
+  <div class="panel table-panel"><div class="table-wrap"><table>
+    <thead><tr><th>Incident</th><th>Severity</th><th>When</th><th>Reported by</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for incident in incidents %}
+      <tr>
+        <td><a class="table-link" href="{% url 'incident_detail' incident.id %}">{{ incident.get_kind_display }}</a><small class="table-sub">{{ incident.description|truncatechars:80 }}</small></td>
+        <td><span class="severity severity-{{ incident.severity }}">{{ incident.get_severity_display }}</span></td>
+        <td>{{ incident.occurred_at|date:'d M Y H:i' }}</td>
+        <td>{{ incident.reported_by|person_name }}</td>
+        <td><span class="status-chip status-{{ incident.status }}">{{ incident.get_status_display }}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No incidents recorded</h3><p>Keep it that way — and report anything unsafe as soon as you see it.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div></div>
+</section>
+{% endblock %}

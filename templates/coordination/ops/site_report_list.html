@@ -1,0 +1,25 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{{ project.title }} · Site reports — BuildLink{% endblock %}
+{% block content %}
+{% include 'coordination/ops/_project_heading.html' %}
+{% include 'coordination/ops/_project_nav.html' %}
+<section class="container section ops-stack">
+  <div class="toolbar"><p class="muted">Daily reports from site, newest first.</p>{% if can_supervise %}<a class="button button-dark button-small" href="{% url 'site_report_create' project.id %}">{% icon 'plus' %} New daily report</a>{% endif %}</div>
+  {% for report in reports %}
+  <article class="panel report-card">
+    <header class="report-head">
+      <div class="report-date"><strong>{{ report.date|date:'d' }}</strong><span>{{ report.date|date:'M Y' }}</span></div>
+      <div><h2>{{ report.summary }}</h2><p class="muted">{{ report.author|person_name }}{% if report.site %} · {{ report.site.name }}{% endif %}{% if report.weather %} · {{ report.get_weather_display }}{% endif %} · {{ report.workers_on_site }} worker{{ report.workers_on_site|pluralize }} on site{% if report.synced_offline %} · <span class="tag">Synced after offline</span>{% endif %}</p></div>
+    </header>
+    <div class="report-body">
+      <div><small>Work completed</small><p>{{ report.work_completed|linebreaksbr }}</p></div>
+      {% if report.issues %}<div class="report-issues"><small>Issues and blockers</small><p>{{ report.issues|linebreaksbr }}</p></div>{% endif %}
+      {% if report.task %}<p class="report-task">Updated <a class="text-link" href="{% url 'task_detail' project.id report.task.id %}">{{ report.task.title }}</a> to <strong>{{ report.task_progress }}%</strong></p>{% endif %}
+    </div>
+    {% if report.photos.all %}<div class="photo-grid">{% for photo in report.photos.all %}<a href="{% url 'operations_file' 'report-photo' photo.id %}" target="_blank" rel="noopener"><img src="{% url 'operations_file' 'report-photo' photo.id %}" alt="Site photo from {{ report.date|date:'d M Y' }}" loading="lazy"></a>{% endfor %}</div>{% endif %}
+  </article>
+  {% empty %}
+  <div class="panel"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No site reports yet</h3><p>Supervisors post a short report at the end of each working day, with photos.</p></div></div>
+  {% endfor %}
+</section>
+{% endblock %}

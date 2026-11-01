@@ -1,0 +1,14 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Announcements — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="container page-heading-inner"><div><div class="eyebrow">COMMUNICATION</div><h1>Announcements</h1><p>Messages from the office to site teams, delivered in the app and optionally by SMS and email.</p></div>{% if can_post %}<a class="button button-accent" href="{% url 'announcement_create' %}">{% icon 'plus' %} New announcement</a>{% endif %}</div></section>
+<section class="container section ops-stack">
+  {% for item in items %}<article class="panel announcement">
+    <header><div><h2>{{ item.title }}</h2><p class="muted">{{ item.author|person_name }} · {{ item.created_at|date:'d M Y, H:i' }} · {% if item.project %}{{ item.project.title }} team{% else %}Whole company{% endif %}</p></div>
+      <div class="tag-row">{% if item.send_sms %}<span class="tag">SMS</span>{% endif %}{% if item.send_email %}<span class="tag">Email</span>{% endif %}</div></header>
+    <p>{{ item.body|linebreaksbr }}</p>
+  </article>{% empty %}
+  <div class="panel"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No announcements yet</h3><p>Site updates, safety notices and schedule changes will appear here.</p></div></div>
+  {% endfor %}
+</section>
+{% endblock %}

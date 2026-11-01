@@ -1,0 +1,34 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Clock in — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="container"><div class="eyebrow">ATTENDANCE</div><h1>Clock in / out</h1><p>You can only clock in when you are inside the site boundary. Works offline too — it syncs when you are back online.</p></div></section>
+<section class="container section clock-page" data-clock-self data-endpoint="{% url 'clock_api' %}">
+  {% csrf_token %}
+  <div class="panel clock-card">
+    <div class="clock-status">
+      {% if today_record and today_record.is_open %}<span class="status-chip status-on_site">On site</span><p>Clocked in at <strong>{{ today_record.clock_in|time:'H:i' }}</strong> on {{ today_record.project.title }}.</p>
+      {% elif today_record and today_record.clock_out %}<span class="status-chip status-completed">Done for today</span><p>{{ today_record.hours_worked }} hours recorded ({{ today_record.clock_in|time:'H:i' }}–{{ today_record.clock_out|time:'H:i' }}).</p>
+      {% else %}<span class="status-chip status-not_recorded">Not clocked in</span><p>Good {% now 'A' as meridiem %}{% if meridiem == 'AM' %}morning{% else %}afternoon{% endif %}, {{ worker.first_name }}.</p>{% endif %}
+    </div>
+    {% if projects %}
+      <label class="clock-select">Project and site
+        <select class="field-control" data-clock-target>
+          {% for project in projects %}{% for site in project.sites.all %}<option value="{{ project.id }}:{{ site.id }}">{{ project.title }} — {{ site.name }}</option>{% empty %}<option value="{{ project.id }}:">{{ project.title }}</option>{% endfor %}{% endfor %}
+        </select>
+      </label>
+      <button class="clock-button{% if today_record and today_record.is_open %} is-out{% endif %}" type="button" data-clock-button{% if today_record and today_record.clock_out %} disabled{% endif %}>
+        <span class="clock-button-icon" aria-hidden="true">{% icon 'clock' %}</span>
+        <span data-clock-label>{% if today_record and today_record.is_open %}Clock out{% elif today_record and today_record.clock_out %}Done for today{% else %}Clock in{% endif %}</span>
+      </button>
+      <p class="clock-message" data-clock-message role="status" aria-live="polite"></p>
+    {% else %}
+      <div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No active project</h3><p>Your supervisor will add you to a project team. Until then there is nothing to clock in to.</p></div>
+    {% endif %}
+  </div>
+  <div class="clock-side">
+    <a class="list-card" href="{% url 'worker_id_card' worker.id %}"><span class="list-icon" aria-hidden="true">{% icon 'qr' %}</span><div class="list-card-body"><strong>My QR ID card</strong><small>Show it to your supervisor to check in without GPS.</small></div><b>→</b></a>
+    <a class="list-card" href="{% url 'my_attendance' %}"><span class="list-icon" aria-hidden="true">{% icon 'calendar' %}</span><div class="list-card-body"><strong>My attendance history</strong><small>Hours worked and absences.</small></div><b>→</b></a>
+    <div class="offline-note" data-offline-indicator hidden><strong>You are offline.</strong> Clock-ins are saved on this phone and sent automatically when you reconnect.</div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Review request — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="container"><div class="eyebrow"><a href="{% url 'material_list' %}">MATERIALS</a> / REQUEST {{ item.id }}</div><div class="detail-title-row"><div><h1>{{ item.quantity|floatformat:"-2" }} {{ item.unit }} · {{ item.item }}</h1><p>{{ item.project.title }}{% if item.site %} · {{ item.site.name }}{% endif %}</p></div><span class="status-pill status-{{ item.status }}"><span></span>{{ item.get_status_display }}</span></div></div></section>
+<section class="container detail-layout">
+  <div class="detail-main">
+    <article class="panel detail-card">
+      <div class="eyebrow">REQUEST</div><h2>Why it is needed</h2>
+      <p class="long-copy">{{ item.reason|linebreaksbr }}</p>
+      <div class="detail-facts">
+        <div><small>Type</small><strong>{{ item.get_kind_display }}</strong></div>
+        <div><small>Needed by</small><strong>{{ item.needed_by|date:'d M Y'|default:'No date given' }}</strong></div>
+        <div><small>Estimated cost</small><strong>{% if item.estimated_cost %}SLE {{ item.estimated_cost|floatformat:"2g" }}{% else %}Not estimated{% endif %}</strong></div>
+        <div><small>Requested by</small><strong>{{ item.requested_by|person_name }} · {{ item.created_at|date:'d M Y' }}</strong></div>
+      </div>
+      {% if item.project.budget %}<p class="muted">Project budget: SLE {{ item.project.budget|floatformat:"2g" }}</p>{% endif %}
+    </article>
+  </div>
+  <aside class="detail-aside">
+    <div class="panel action-panel">
+      <div class="eyebrow">DECISION</div><h3>{% if item.status == 'approved' %}Confirm delivery{% else %}Approve or reject{% endif %}</h3>
+      <form method="post" class="form-stack" data-validate>{% csrf_token %}
+        {% include 'coordination/_form_alert.html' %}
+        {% for field in form %}{% include 'coordination/_field.html' %}{% endfor %}
+        <button class="button button-accent button-full" type="submit">Save decision</button>
+      </form>
+    </div>
+  </aside>
+</section>
+{% endblock %}

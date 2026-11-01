@@ -1,0 +1,34 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Scan QR cards · {{ project.title }} — BuildLink{% endblock %}
+{% block content %}
+{% include 'coordination/ops/_project_heading.html' %}
+{% include 'coordination/ops/_project_nav.html' %}
+<section class="container section">
+  <div class="scanner-layout" data-clock-scanner data-endpoint="{% url 'clock_api' %}" data-project="{{ project.id }}">
+    {% csrf_token %}
+    <div class="panel scanner-panel">
+      <div class="scanner-viewport">
+        <video data-scanner-video playsinline muted aria-label="Camera preview"></video>
+        <div class="scanner-frame" aria-hidden="true"></div>
+        <p class="scanner-idle" data-scanner-idle>Point the camera at a worker's QR ID card.</p>
+      </div>
+      <div class="scanner-controls">
+        <button class="button button-dark" type="button" data-scanner-start>{% icon 'camera' %} Start camera</button>
+        <button class="button button-quiet" type="button" data-scanner-stop hidden>Stop camera</button>
+        {% if sites|length > 1 %}<label class="inline-select">Site <select data-clock-site>{% for site in sites %}<option value="{{ site.id }}">{{ site.name }}</option>{% endfor %}</select></label>{% elif sites %}<input type="hidden" data-clock-site value="{{ sites.0.id }}">{% endif %}
+      </div>
+      <p class="field-help" data-scanner-support>Scanning uses your phone's built-in barcode reader (Chrome on Android works best). If it is not supported, type or paste the code printed under the QR instead.</p>
+      <form class="scanner-manual" data-scanner-manual>
+        <label for="manual-code">Card code</label>
+        <div class="inline-input"><input class="field-control" id="manual-code" name="code" autocomplete="off" spellcheck="false" placeholder="BUILDLINK-WORKER:…" required><button class="button button-outline" type="submit">Record</button></div>
+      </form>
+    </div>
+    <div class="panel scanner-log-panel">
+      <div class="panel-heading"><div><div class="eyebrow">THIS SESSION</div><h2>Scans</h2></div></div>
+      <p class="muted">Each scan clocks the worker in, or out if they are already on site. Your location is checked against the site boundary.</p>
+      <ol class="scan-log" data-scan-log aria-live="polite"></ol>
+      <a class="button button-outline button-full" href="{% url 'attendance_board' project.id %}">Open today's register</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

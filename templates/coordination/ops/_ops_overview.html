@@ -1,0 +1,79 @@
+{% load coordination_tags %}<section class="ops-overview" aria-labelledby="ops-overview-title">
+  <h2 class="visually-hidden" id="ops-overview-title">Site operations today</h2>
+
+  <div class="kpi-grid">
+    <a class="kpi-card" href="{% url 'project_list' %}">
+      <span class="kpi-icon">{% icon 'crane' %}</span>
+      <span class="kpi-label">Active projects</span>
+      <strong class="kpi-value">{{ active_project_count }}</strong>
+      <small>{% if on_hold_count %}{{ on_hold_count }} on hold{% else %}None on hold{% endif %}</small>
+    </a>
+    <div class="kpi-card">
+      <span class="kpi-icon">{% icon 'hardhat' %}</span>
+      <span class="kpi-label">Workers on site today</span>
+      <strong class="kpi-value">{{ on_site_count }}</strong>
+      <small>{{ present_today }} checked in · {{ team_size }} on project teams</small>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-icon">{% icon 'clock' %}</span>
+      <span class="kpi-label">Attendance rate</span>
+      <strong class="kpi-value">{% if attendance_rate is not None %}{{ attendance_rate }}<span class="kpi-unit">%</span>{% else %}—{% endif %}</strong>
+      <small>{% if absent_today %}{{ absent_today }} absent or on leave{% else %}Nobody marked absent{% endif %}</small>
+    </div>
+    <a class="kpi-card{% if serious_incident_count %} is-alert{% endif %}" href="{% url 'incident_list' %}">
+      <span class="kpi-icon kpi-icon-alert">{% icon 'cone' %}</span>
+      <span class="kpi-label">Open incidents</span>
+      <strong class="kpi-value">{{ open_incident_count }}</strong>
+      <small>{% if serious_incident_count %}{{ serious_incident_count }} high or critical{% else %}None high or critical{% endif %}</small>
+    </a>
+    <a class="kpi-card" href="{% url 'payroll_list' %}">
+      <span class="kpi-icon">{% icon 'wallet' %}</span>
+      <span class="kpi-label">Labour cost this month</span>
+      <strong class="kpi-value">{{ labour_this_month|compact_sle }}</strong>
+      <small>From attendance hours</small>
+    </a>
+  </div>
+
+  <div class="ops-row ops-row-map">
+    <section class="panel map-panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">ACTIVE SITES</div><h2>Site map</h2></div><span class="muted">{{ map_sites|length }} site{{ map_sites|length|pluralize }}</span></div>
+      {% if map_sites %}
+        <div class="site-map skeleton" data-site-map aria-label="Map of active construction sites"></div>
+        {{ map_sites|json_script:"site-map-data" }}
+        <ul class="map-legend">{% for site in map_sites %}<li><a href="{{ site.url }}">{% icon 'pin' %}<span><strong>{{ site.site }}</strong><small>{{ site.project }} · {{ site.on_site }} on site</small></span></a></li>{% endfor %}</ul>
+      {% else %}
+        <div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No sites on the map yet</h3><p>Add GPS coordinates to a project's site to see it here.</p></div>
+      {% endif %}
+    </section>
+    <section class="panel on-site-panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">CHECKED IN NOW</div><h2>On site</h2></div><span class="count-badge">{{ on_site_count }}</span></div>
+      <div class="on-site-list">
+        {% for record in on_site_now|slice:':7' %}<div class="on-site-row"><span class="worker-avatar">{{ record.worker.first_name|slice:':1'|upper }}{{ record.worker.last_name|slice:':1'|upper }}</span><span><strong>{{ record.worker.full_name }}</strong><small>{% trade_badge record.worker.primary_trade %} {{ record.site.name|default:record.project.title }}</small></span><time>{{ record.clock_in|time:'H:i' }}</time></div>
+        {% empty %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>Nobody on site</h3><p>Workers appear here as they clock in.</p></div>{% endfor %}
+        {% if on_site_count > 7 %}<p class="muted on-site-more">and {{ on_site_count|add:'-7' }} more</p>{% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="ops-row">
+    <section class="panel chart-panel">{% include 'coordination/_column_chart.html' with chart=attendance_chart title="Attendance trend" subtitle="Workers present per day, last 14 days" table_label="Day" %}</section>
+    <section class="panel chart-panel">{% include 'coordination/_column_chart.html' with chart=labour_chart title="Labour cost" subtitle="Wages earned per month, from attendance (SLE)" table_label="Month" %}</section>
+  </div>
+
+  <div class="ops-row">
+    <section class="panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">PROJECT PROGRESS</div><h2>Active projects</h2></div><a class="text-link" href="{% url 'project_list' %}">All projects →</a></div>
+      {% if project_progress %}<div class="progress-list">{% for project in project_progress %}<a class="progress-row" href="{% url 'project_detail' project.id %}"><span><strong>{{ project.title }}</strong><small>{{ project.location }}{% if project.expected_end_date %} · due {{ project.expected_end_date|date:'d M Y' }}{% endif %}</small></span><div class="progress-track" role="progressbar" aria-valuenow="{{ project.progress_percentage }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ project.title }} progress"><span style="width:{{ project.progress_percentage }}%"></span></div><b>{{ project.progress_percentage }}%</b></a>{% endfor %}</div>
+      {% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No active projects</h3><p><a class="text-link" href="{% url 'project_create' %}">Create a project</a> to start scheduling work.</p></div>{% endif %}
+    </section>
+    <section class="panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">ACROSS YOUR SITES</div><h2>Recent activity</h2></div></div>
+      {% if activity %}<ol class="activity-feed">{% for item in activity %}<li><span class="activity-icon">{% icon item.icon %}</span><span><strong>{{ item.entry.description|truncatechars:110 }}</strong><small><time datetime="{{ item.entry.created_at|date:'c' }}">{{ item.entry.created_at|timesince }} ago</time> · {{ item.entry.user|person_name:"System" }}</small></span></li>{% endfor %}</ol>
+      {% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No activity yet</h3><p>Clock-ins, reports and approvals will appear here.</p></div>{% endif %}
+    </section>
+  </div>
+</section>
+{% if map_sites %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+{% endif %}

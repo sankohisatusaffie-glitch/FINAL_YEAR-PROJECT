@@ -1,0 +1,71 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Workforce — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="container page-heading-inner">
+    <div><div class="eyebrow">WORKFORCE</div><h1>Your crew</h1><p>Trades, availability, daily rates and QR ID cards for every worker.</p></div>
+    <a class="button button-accent" href="{% url 'worker_create' %}">{% icon 'plus' %} Add a worker</a>
+  </div>
+</section>
+<section class="container section ops-stack">
+  <form method="get" class="filter-bar">
+    <input type="hidden" name="view" value="{{ view_mode }}">
+    <label class="search-input">{% icon 'search' %}<input type="search" name="q" value="{{ filters.q }}" placeholder="Search name, worker ID, trade or skill" aria-label="Search workers"></label>
+    <select name="availability" aria-label="Availability"><option value="">Any availability</option>{% for value,label in availability_choices %}<option value="{{ value }}" {% if filters.availability == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select name="employment" aria-label="Employment"><option value="">Current and former</option><option value="active" {% if filters.employment == 'active' %}selected{% endif %}>Active workers</option><option value="former" {% if filters.employment == 'former' %}selected{% endif %}>Former workers</option></select>
+    <select name="min_experience" aria-label="Experience"><option value="">Any experience</option><option value="5" {% if filters.min_experience == "5" %}selected{% endif %}>5+ years</option><option value="10" {% if filters.min_experience == "10" %}selected{% endif %}>10+ years</option></select>
+    <button class="button button-dark button-small" type="submit">Filter</button><a class="subtle-link" href="{% url 'worker_list' %}">Reset</a>
+    <nav class="segmented view-toggle" aria-label="Worker view">
+      <a href="?{{ view_query }}{% if view_query %}&amp;{% endif %}view=table"{% if view_mode == 'table' %} aria-current="true"{% endif %}>{% icon 'list' %} Table</a>
+      <a href="?{{ view_query }}{% if view_query %}&amp;{% endif %}view=cards"{% if view_mode == 'cards' %} aria-current="true"{% endif %}>{% icon 'grid' %} Cards</a>
+    </nav>
+  </form>
+
+  {% if view_mode == 'cards' %}
+  <div class="worker-card-grid">
+    {% for worker in workers %}
+    <article class="worker-card{% if worker.employment_status == 'former' %} is-former{% endif %}">
+      <div class="worker-card-photo">{% if worker.photo %}<img src="{% url 'operations_file' 'worker-photo' worker.id %}" alt="Photo of {{ worker.full_name }}" loading="lazy">{% else %}<span class="worker-card-initials">{{ worker.first_name|slice:':1'|upper }}{{ worker.last_name|slice:':1'|upper }}</span>{% endif %}<span class="status-chip status-{{ worker.availability }}">{{ worker.get_availability_display }}</span></div>
+      <div class="worker-card-body">
+        <h2>{{ worker.full_name }}</h2>
+        <span class="worker-card-id">{{ worker.worker_id }}{% if worker.employment_status == 'former' %} · Former worker{% endif %}</span>
+        {% trade_badge worker.primary_trade %}
+        <dl class="worker-card-facts">
+          <div><dt>Daily rate</dt><dd>SLE {{ worker.daily_rate|floatformat:"0g" }}</dd></div>
+          <div><dt>Experience</dt><dd>{{ worker.experience_years }} yrs</dd></div>
+        </dl>
+      </div>
+      <div class="worker-card-actions">
+        <a class="button button-small button-outline" href="{% url 'worker_id_card' worker.id %}">{% icon 'qr' %} ID card</a>
+        <a class="button button-small button-quiet" href="{% url 'worker_edit' worker.id %}">Edit</a>
+      </div>
+    </article>
+    {% empty %}
+    <div class="panel wide-empty"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No workers found</h3><p>Add your crew to track trades, availability and pay.</p><a class="button button-accent" href="{% url 'worker_create' %}">Add first worker</a></div></div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="panel table-panel">
+    <div class="panel-heading"><div><div class="eyebrow">PRIVATE COMPANY RECORDS</div><h2>{{ total_count }} worker{{ total_count|pluralize }}</h2></div></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Worker</th><th>Trade</th><th>Availability</th><th class="num">Daily rate (SLE)</th><th class="num">Experience</th><th>Employment</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>
+      {% for worker in workers %}
+        <tr>
+          <td><div class="person-cell">{% if worker.photo %}<img class="person-photo" src="{% url 'operations_file' 'worker-photo' worker.id %}" alt="" loading="lazy">{% else %}<span class="worker-avatar">{{ worker.first_name|slice:':1'|upper }}{{ worker.last_name|slice:':1'|upper }}</span>{% endif %}<span><strong>{{ worker.full_name }}</strong><small class="table-sub">{{ worker.worker_id }} · {{ worker.telephone|default:'No phone listed' }}</small></span></div></td>
+          <td>{% trade_badge worker.primary_trade %}</td>
+          <td><span class="status-chip status-{{ worker.availability }}">{{ worker.get_availability_display }}</span></td>
+          <td class="num">{{ worker.daily_rate|floatformat:"2g" }}</td>
+          <td class="num">{{ worker.experience_years }} yrs</td>
+          <td>{{ worker.get_employment_status_display }}</td>
+          <td class="row-actions"><a class="text-link" href="{% url 'worker_edit' worker.id %}">Edit</a> <a class="text-link" href="{% url 'worker_id_card' worker.id %}">ID card</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No workers found</h3><p>Add your crew to track trades, availability and pay.</p><a class="button button-accent" href="{% url 'worker_create' %}">Add first worker</a></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

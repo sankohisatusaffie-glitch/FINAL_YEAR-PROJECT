@@ -1,0 +1,13 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Manager dashboard — BuildLink{% endblock %}
+{% block content %}
+<section class="dashboard-heading"><div class="container dashboard-heading-inner"><div><div class="eyebrow">PROJECT MANAGER · {{ company.name|upper }}</div><h1>Good {% now 'A' as meridiem %}{% if meridiem == 'AM' %}morning{% else %}afternoon{% endif %}, {{ user.first_name|default:user.username }}.</h1><p>Your sites, people and costs at a glance.</p></div></div></section>
+<section class="container dashboard-content">
+  <div class="quick-actions">
+    <a href="{% url 'project_create' %}"><span class="quick-icon" aria-hidden="true">{% icon 'plus' %}</span><span><strong>New project</strong><small>Sites, phases and budget</small></span><b>→</b></a>
+    <a href="{% url 'material_list' %}?status=pending"><span class="quick-icon quick-icon-blue" aria-hidden="true">{% icon 'toolbox' %}</span><span><strong>Approve requests</strong><small>Materials and equipment</small></span><b>→</b></a>
+    <a href="{% url 'payroll_list' %}"><span class="quick-icon quick-icon-sand" aria-hidden="true">{% icon 'wallet' %}</span><span><strong>Run payroll</strong><small>From attendance hours</small></span><b>→</b></a>
+  </div>
+  {% include 'coordination/ops/_ops_overview.html' %}
+</section>
+{% endblock %}

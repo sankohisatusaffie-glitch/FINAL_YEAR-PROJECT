@@ -1,0 +1,25 @@
+{% extends 'coordination/base.html' %}
+{% block title %}Link expired — BuildLink{% endblock %}
+{% block content %}
+<section class="auth-shell">
+  <div class="auth-aside">
+    <div class="eyebrow eyebrow-light">CONFIRM YOUR EMAIL</div>
+    <h1>This link no<br><em>longer works.</em></h1>
+    <p>Confirmation links work once and expire after 3 days.</p>
+    {% include 'coordination/_construction_scene.html' %}
+  </div>
+  <div class="auth-main">
+    <div class="form-heading">
+      <div class="eyebrow">LINK EXPIRED OR INVALID</div>
+      <h2>Get a new link</h2>
+      <p>The link may have expired, already been used, or been copied incompletely.</p>
+    </div>
+    {% if can_resend %}
+      <a class="button button-accent button-full" href="{% url 'verification_sent' %}">Send a new confirmation link <span aria-hidden="true">→</span></a>
+    {% else %}
+      <p class="muted">Log in with your username and password and we will offer to send a new link.</p>
+      <a class="button button-accent button-full" href="{% url 'login' %}">Go to log in <span aria-hidden="true">→</span></a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

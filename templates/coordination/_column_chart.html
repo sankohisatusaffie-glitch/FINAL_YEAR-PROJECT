@@ -1,0 +1,25 @@
+{% comment %}
+Single-series column chart. Pass `chart` (from charts.column_chart), `title`, `subtitle` and `table_label`.
+Each column is focusable and shows a tooltip (site.js); the table view keeps every value reachable.
+{% endcomment %}<figure class="chart" data-chart>
+  <figcaption class="chart-caption"><strong>{{ title }}</strong>{% if subtitle %}<span>{{ subtitle }}</span>{% endif %}</figcaption>
+  {% if chart.has_data %}
+  <div class="chart-frame">
+    <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="{{ title }}. Values are listed in the table below.">
+      {% for tick in chart.ticks %}<line class="chart-grid" x1="{{ chart.left }}" x2="{{ chart.width }}" y1="{{ tick.y }}" y2="{{ tick.y }}"/><text class="chart-tick" x="{{ chart.left|add:'-8' }}" y="{{ tick.y }}" dy="4" text-anchor="end">{{ tick.label }}</text>{% endfor %}
+      {% for column in chart.columns %}<g class="chart-column" tabindex="0" data-tooltip-label="{{ column.label }}" data-tooltip-value="{{ column.display }}">
+        <rect class="chart-hit" x="{{ column.hit_x }}" y="0" width="{{ column.hit_width }}" height="{{ chart.base }}"/>
+        {% if column.path %}<path class="chart-bar" d="{{ column.path }}"/>{% endif %}
+        {% if column.show_value %}<text class="chart-value" x="{{ column.center }}" y="{{ column.top }}" dy="-7" text-anchor="middle">{{ column.display }}</text>{% endif %}
+        {% if column.show_label %}<text class="chart-label" x="{{ column.center }}" y="{{ chart.height }}" dy="-8" text-anchor="middle">{{ column.label }}</text>{% endif %}
+      </g>{% endfor %}
+      <line class="chart-baseline" x1="{{ chart.left }}" x2="{{ chart.width }}" y1="{{ chart.base }}" y2="{{ chart.base }}"/>
+    </svg>
+    <div class="chart-tooltip" role="status" hidden><strong></strong><span></span></div>
+  </div>
+  {% else %}<p class="chart-empty">{{ empty_message|default:"No data for this period yet." }}</p>{% endif %}
+  <details class="chart-table">
+    <summary>Show as table</summary>
+    <table><thead><tr><th>{{ table_label|default:"Period" }}</th><th>Value</th></tr></thead><tbody>{% for column in chart.columns %}<tr><td>{{ column.label }}</td><td>{{ column.display }}</td></tr>{% endfor %}</tbody></table>
+  </details>
+</figure>

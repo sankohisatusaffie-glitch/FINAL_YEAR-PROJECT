@@ -1,0 +1,34 @@
+{% extends 'coordination/base.html' %}
+{% block title %}Confirm your email — BuildLink{% endblock %}
+{% block content %}
+<section class="auth-shell">
+  <div class="auth-aside">
+    <div class="eyebrow eyebrow-light">ONE LAST STEP</div>
+    <h1>Check your<br><em>inbox.</em></h1>
+    <p>Confirming your email keeps BuildLink accounts real, so companies and clients know who they are working with.</p>
+    {% include 'coordination/_construction_scene.html' %}
+  </div>
+  <div class="auth-main">
+    <div class="form-heading">
+      <div class="eyebrow">CONFIRM YOUR EMAIL</div>
+      <h2>We sent you a link</h2>
+      <p>Open the email we sent to <strong>{{ masked_email }}</strong> and choose the confirmation link. It expires in 3 days.</p>
+    </div>
+    {% if dev_link %}
+      <div class="dev-note" role="note">
+        <strong>Development only</strong>
+        <p>Emails print to the server console in development. Use this link to confirm:</p>
+        <a class="text-link" href="{{ dev_link }}">Confirm email address →</a>
+      </div>
+    {% endif %}
+    <ul class="check-list">
+      <li>Look in your spam or promotions folder if it is not in your inbox.</li>
+      <li>The email comes from BuildLink with the subject "Confirm your BuildLink email address".</li>
+    </ul>
+    <form method="post" class="form-stack">{% csrf_token %}
+      <button class="button button-outline button-full" type="submit">Send a new link</button>
+    </form>
+    <p class="auth-switch">Already confirmed? <a href="{% url 'login' %}">Log in</a></p>
+  </div>
+</section>
+{% endblock %}

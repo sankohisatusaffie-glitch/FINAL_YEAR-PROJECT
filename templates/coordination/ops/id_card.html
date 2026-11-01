@@ -1,0 +1,22 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}ID card · {{ worker.full_name }} — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading no-print"><div class="container page-heading-inner"><div><div class="eyebrow">WORKER ID CARD</div><h1>{{ worker.full_name }}</h1><p>Print and laminate this card. Supervisors scan the QR code to record attendance.</p></div><button class="button button-dark" type="button" data-print>Print card</button></div></section>
+<section class="container section id-card-page">
+  <article class="id-card" aria-label="Worker ID card for {{ worker.full_name }}">
+    <header class="id-card-header">{% include 'coordination/_logo_mark.html' %}<div><strong>{{ company.name }}</strong><small>Construction worker ID</small></div></header>
+    <div class="id-card-stripe" aria-hidden="true"></div><div class="id-card-body">
+      <div class="id-card-qr">{{ qr_svg|safe }}<code class="id-card-code">{{ worker.qr_token }}</code></div>
+      <div class="id-card-details">
+        {% if worker.photo %}<img class="id-card-photo" src="{% url 'operations_file' 'worker-photo' worker.id %}" alt="Photo of {{ worker.full_name }}">{% endif %}
+        <strong class="id-card-name">{{ worker.full_name }}</strong>
+        {% trade_badge worker.primary_trade %}
+        <dl><dt>Worker ID</dt><dd>{{ worker.worker_id }}</dd>{% if worker.emergency_contact %}<dt>Emergency</dt><dd>{{ worker.emergency_contact }}</dd>{% endif %}</dl>
+      </div>
+    </div>
+    <footer class="id-card-footer">If found, return to {{ company.name }} · {{ company.telephone }}</footer>
+  </article>
+  {% if can_reissue %}<form method="post" class="no-print reissue-form" data-confirm="Reissue this card? The old card will stop working immediately.">{% csrf_token %}<button class="button button-danger-quiet button-small" type="submit">Reissue card (old card stops working)</button></form>{% endif %}
+  <p class="field-help no-print">Lost card? {% if can_reissue %}Reissue it above.{% else %}Ask a manager to reissue it.{% endif %} The QR holds only a random code, never personal details.</p>
+</section>
+{% endblock %}

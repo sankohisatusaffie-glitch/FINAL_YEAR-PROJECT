@@ -1,0 +1,3 @@
+{% extends 'coordination/base.html' %}
+{% block title %}Access denied — BuildLink{% endblock %}
+{% block content %}<section class="container error-page"><span>403</span><div class="eyebrow">ACCESS CONTROL</div><h1>This page isn't available to your account.</h1><p>Your account can only view information and actions for its role.</p><a class="button button-accent" href="{% url 'dashboard' %}">Back to your dashboard</a></section>{% endblock %}

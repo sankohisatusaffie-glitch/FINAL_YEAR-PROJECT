@@ -1,0 +1,44 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Projects — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="container page-heading-inner">
+    <div>
+      <div class="eyebrow">PROJECT COORDINATION</div>
+      <h1>{% if user.role == 'client' %}Your projects{% elif user.role == 'admin' %}Platform projects{% elif user.role == 'worker' or user.role == 'supervisor' %}My projects{% else %}Company projects{% endif %}</h1>
+      <p>Each project brings its sites, phases, tasks, crew, attendance and site reports together.</p>
+    </div>
+    {% if can_create %}<a class="button button-accent" href="{% url 'project_create' %}">{% icon 'plus' %} New project</a>{% endif %}
+  </div>
+</section>
+<section class="container section ops-stack">
+  <nav class="segmented" aria-label="Filter projects by status">
+    <a href="?"{% if not status_filter %} aria-current="true"{% endif %}>All</a>
+    {% for value, label in status_choices %}<a href="?status={{ value }}"{% if status_filter == value %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}
+  </nav>
+  <div class="project-card-grid">
+    {% for project in projects %}
+    <a class="site-project-card" href="{% url 'project_detail' project.id %}">
+      <div class="site-project-photo skeleton">
+        <img src="{{ project.cover_url }}" alt="" loading="lazy">
+        <span class="status-chip status-{% if project.is_delayed %}delayed{% else %}{{ project.status }}{% endif %}">{% if project.is_delayed %}Delayed{% else %}{{ project.get_status_display }}{% endif %}</span>
+      </div>
+      <div class="site-project-body">
+        <span class="project-id">PROJECT #{{ project.id }}{% if user.role != 'client' and project.client %} · {{ project.client|person_name }}{% endif %}</span>
+        <h2>{{ project.title }}</h2>
+        <p class="site-project-meta">{% icon 'pin' %}{{ project.location }}</p>
+        <p class="site-project-meta">{% icon 'blueprint' %}{% if project.current_phase %}{{ project.current_phase.name }}{% if project.current_phase.is_milestone %} (milestone){% endif %}{% else %}No phases planned{% endif %}</p>
+        <div class="progress-label"><span>Progress</span><strong>{{ project.progress_percentage }}%</strong></div>
+        <div class="progress-track" role="progressbar" aria-valuenow="{{ project.progress_percentage }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ project.title }} progress"><span style="width:{{ project.progress_percentage }}%"></span></div>
+      </div>
+      <div class="site-project-foot">
+        <span class="{% if project.is_delayed %}overdue{% endif %}">{% icon 'calendar' %}{% if project.expected_end_date %}Due {{ project.expected_end_date|date:'d M Y' }}{% else %}No deadline set{% endif %}</span>
+        <b>Open {% icon 'chevron' %}</b>
+      </div>
+    </a>
+    {% empty %}
+    <div class="panel wide-empty"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No projects {% if status_filter %}with this status{% else %}yet{% endif %}</h3><p>{% if can_create %}Create a project directly, or accept a client request to start one.{% else %}Projects appear here once you are added to one.{% endif %}</p>{% if can_create %}<a class="button button-accent" href="{% url 'project_create' %}">Create a project</a>{% elif user.role == 'client' %}<a class="button button-outline" href="{% url 'company_directory' %}">Explore companies</a>{% endif %}</div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

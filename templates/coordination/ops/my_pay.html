@@ -1,0 +1,16 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}My pay — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="container"><div class="eyebrow">MY PAY</div><h1>Payslips</h1><p>Daily rate: <strong>SLE {{ worker.daily_rate|floatformat:"2g" }}</strong> for an 8-hour day.{% if worker.mobile_money_provider %} Paid to {{ worker.get_mobile_money_provider_display }} {{ worker.mobile_money_number }}.{% endif %}</p></div></section>
+<section class="container section">
+  <div class="card-list">
+    {% for record in records %}<a class="list-card" href="{% url 'payroll_detail' record.id %}">
+      <span class="list-icon" aria-hidden="true">{% icon 'wallet' %}</span>
+      <div class="list-card-body"><strong>{{ record.period_start|date:'d M' }} – {{ record.period_end|date:'d M Y' }}</strong><small>{{ record.days_present }} days · {{ record.hours_worked }} hours</small></div>
+      <div class="list-card-value"><strong>SLE {{ record.net_pay|floatformat:"2g" }}</strong><span class="status-chip status-{{ record.status }}">{{ record.get_status_display }}</span></div>
+    </a>{% empty %}
+    <div class="panel"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No payslips yet</h3><p>Payslips appear here once your manager approves them.</p></div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

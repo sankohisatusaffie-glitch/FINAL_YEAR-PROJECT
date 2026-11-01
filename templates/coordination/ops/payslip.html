@@ -1,0 +1,67 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Payslip · {{ record.worker.full_name }} — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading no-print"><div class="container page-heading-inner"><div><div class="eyebrow">{% if manages %}<a href="{% url 'payroll_list' %}">PAYROLL</a>{% else %}<a href="{% url 'my_pay' %}">MY PAY</a>{% endif %} / PAYSLIP {{ record.id }}</div><h1>{{ record.worker.full_name }}</h1><p>{{ record.period_start|date:'d M Y' }} – {{ record.period_end|date:'d M Y' }}</p></div><button class="button button-outline" type="button" data-print>{% icon 'download' %} Download PDF</button></div></section>
+<section class="container detail-layout">
+  <div class="detail-main">
+    <article class="panel payslip" aria-label="Payslip">
+      <header class="payslip-head">
+        <div>{% include 'coordination/_logo_mark.html' %}<strong>{{ record.company.name }}</strong><small>{{ record.company.address }}, {{ record.company.city }}</small></div>
+        <div class="payslip-meta"><strong>PAYSLIP</strong><small>No. {{ record.id|stringformat:"06d" }}</small><span class="status-chip status-{{ record.status }}">{{ record.get_status_display }}</span></div>
+      </header>
+      <dl class="payslip-grid">
+        <div><dt>Worker</dt><dd>{{ record.worker.full_name }}</dd></div>
+        <div><dt>Worker ID</dt><dd>{{ record.worker.worker_id }}</dd></div>
+        <div><dt>Trade</dt><dd>{{ record.worker.primary_trade }}</dd></div>
+        <div><dt>Pay period</dt><dd>{{ record.period_start|date:'d M Y' }} – {{ record.period_end|date:'d M Y' }}</dd></div>
+        <div><dt>Payment method</dt><dd>{% with paid=record.transactions.all|first %}{% if record.status == 'paid' and paid %}{{ paid.get_provider_display }} · {{ paid.msisdn }}{% elif record.worker.mobile_money_provider %}{{ record.worker.get_mobile_money_provider_display }} · {{ record.worker.mobile_money_number }}{% else %}Not set — pay in cash or add a wallet{% endif %}{% endwith %}</dd></div>
+        <div><dt>Daily rate</dt><dd>SLE {{ record.daily_rate|floatformat:"2g" }} per 8-hour day</dd></div>
+      </dl>
+      <table class="payslip-lines">
+        <thead><tr><th>Description</th><th class="num">Quantity</th><th class="num">Rate (SLE)</th><th class="num">Amount (SLE)</th></tr></thead>
+        <tbody>
+          <tr><td>Wages · {{ record.days_present }} day{{ record.days_present|pluralize }} present</td><td class="num">{{ record.hours_worked }} h</td><td class="num">{{ record.daily_rate|floatformat:"2g" }} / 8 h</td><td class="num">{{ record.gross_pay|floatformat:"2g" }}</td></tr>
+          {% if record.deductions %}<tr><td>Deductions</td><td></td><td></td><td class="num">−{{ record.deductions|floatformat:"2g" }}</td></tr>{% endif %}
+        </tbody>
+        <tfoot><tr><th colspan="3">Net pay</th><th class="num">SLE {{ record.net_pay|floatformat:"2g" }}</th></tr></tfoot>
+      </table>
+      {% for txn in transactions %}{% if txn.status == 'successful' %}<p class="payslip-paid">Paid {{ txn.created_at|date:'d M Y H:i' }} via {{ txn.get_provider_display }} to {{ txn.msisdn }} · Ref {{ txn.provider_reference }}{% if txn.sandbox %} (sandbox){% endif %}</p>{% endif %}{% endfor %}
+      <footer class="payslip-foot">Generated {{ record.created_at|date:'d M Y' }} by {{ record.generated_by|person_name:"the system" }} from BuildLink attendance records.</footer>
+    </article>
+
+    <article class="panel table-panel no-print">
+      <div class="panel-heading"><div><div class="eyebrow">BASIS FOR THIS PAYSLIP</div><h2>Attendance in the period</h2></div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Project</th><th>Status</th><th>In</th><th>Out</th><th class="num">Hours</th></tr></thead>
+        <tbody>{% for day in attendance %}<tr><td>{{ day.date|date:'D d M' }}</td><td>{{ day.project.title }}</td><td><span class="status-chip status-{{ day.status }}">{{ day.get_status_display }}</span></td><td>{{ day.clock_in|time:'H:i'|default:'—' }}</td><td>{{ day.clock_out|time:'H:i'|default:'—' }}</td><td class="num">{{ day.hours_worked }}</td></tr>{% empty %}<tr><td colspan="6" class="muted">No attendance records.</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </article>
+  </div>
+  <aside class="detail-aside no-print">
+    {% if manages %}
+      {% if record.status == 'draft' %}
+      <div class="panel action-panel">
+        <div class="eyebrow">DRAFT</div><h3>Check and approve</h3>
+        <form method="post" class="form-stack" data-validate>{% csrf_token %}<input type="hidden" name="action" value="adjust">
+          {% include 'coordination/_form_alert.html' with form=adjust_form %}
+          {% include 'coordination/_field.html' with field=adjust_form.deductions %}
+          <button class="button button-quiet button-full" type="submit">Save deductions</button>
+        </form>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="button button-accent button-full" type="submit">Approve payslip</button></form>
+      </div>
+      {% elif record.status == 'approved' %}
+      <div class="panel action-panel">
+        <div class="eyebrow">MOBILE MONEY</div><h3>Pay SLE {{ record.net_pay|floatformat:"2g" }}</h3>
+        {% if record.worker.mobile_money_provider and record.worker.mobile_money_number %}
+          <p class="muted">Send to {{ record.worker.get_mobile_money_provider_display }} · {{ record.worker.mobile_money_number }}.</p>
+          <form method="post" data-confirm="Send SLE {{ record.net_pay|floatformat:'2g' }} to {{ record.worker.full_name }} via {{ record.worker.get_mobile_money_provider_display }}?">{% csrf_token %}<input type="hidden" name="action" value="pay"><button class="button button-dark button-full" type="submit">Pay via {{ record.worker.get_mobile_money_provider_display }}</button></form>
+          <p class="field-help">Sandbox mode: no real money moves. Numbers ending in 0000 simulate a failed payment.</p>
+        {% else %}<p class="form-empty-note">Add a mobile money provider and number to <a class="text-link" href="{% url 'worker_edit' record.worker.id %}">{{ record.worker.full_name }}'s record</a> first.</p>{% endif %}
+      </div>
+      {% endif %}
+      {% if transactions %}<div class="panel request-summary"><div class="eyebrow">PAYMENT ATTEMPTS</div>{% for txn in transactions %}<div class="summary-row"><span>{{ txn.created_at|date:'d M H:i' }} · {{ txn.get_provider_display }}</span><strong><span class="status-chip status-{{ txn.status }}">{{ txn.get_status_display }}</span></strong></div><p class="field-help">{{ txn.reference }} — {{ txn.message }}</p>{% endfor %}</div>{% endif %}
+    {% endif %}
+    <div class="aside-note"><span>ⓘ</span><p><strong>How pay is calculated</strong><br>Hours worked ÷ 8 × daily rate, minus deductions. Absences and open shifts are not paid.</p></div>
+  </aside>
+</section>
+{% endblock %}

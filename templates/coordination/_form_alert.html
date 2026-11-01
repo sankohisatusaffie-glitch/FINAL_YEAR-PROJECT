@@ -1,0 +1,8 @@
+{% load coordination_tags %}{% if form.errors %}<div class="form-alert" role="alert" data-form-alert>
+  <span class="form-alert-icon" aria-hidden="true">!</span>
+  <div>
+    <strong>Please check the form</strong>
+    {% if form.non_field_errors %}<ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    {% if form|has_field_errors %}<p>Fields that need your attention are highlighted below.</p>{% endif %}
+  </div>
+</div>{% endif %}

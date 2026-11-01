@@ -1,0 +1,26 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{{ project.title }} · Workers — BuildLink{% endblock %}
+{% block content %}
+{% include 'coordination/ops/_project_heading.html' %}
+{% include 'coordination/ops/_project_nav.html' %}
+<section class="container section ops-stack">
+  <div class="toolbar"><p class="muted">{{ active_count }} worker{{ active_count|pluralize }} on the crew. Workers join automatically when assigned to a task.</p>{% if can_supervise %}<a class="button button-dark button-small" href="{% url 'attendance_board' project.id %}">{% icon 'clock' %} Today's attendance</a>{% endif %}</div>
+  <div class="panel table-panel"><div class="table-wrap"><table>
+    <thead><tr><th>Worker</th><th>Trade</th><th>Role on project</th><th>Today</th><th class="num">Open tasks</th><th>Crew status</th></tr></thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td><div class="person-cell"><span class="worker-avatar">{{ row.worker.first_name|slice:':1'|upper }}{{ row.worker.last_name|slice:':1'|upper }}</span><span><strong>{{ row.worker.full_name }}</strong><small class="table-sub">{{ row.worker.worker_id }}{% if row.worker.telephone %} · {{ row.worker.telephone }}{% endif %}</small></span></div></td>
+        <td>{% trade_badge row.worker.primary_trade %}</td>
+        <td>{{ row.assignment.role|default:'—' }}</td>
+        <td>{% if row.today %}<span class="status-chip status-{% if row.today.is_open %}on_site{% else %}{{ row.today.status }}{% endif %}">{% if row.today.is_open %}On site since {{ row.today.clock_in|time:'H:i' }}{% else %}{{ row.today.get_status_display }}{% endif %}</span>{% elif row.assignment.status == 'active' %}<span class="status-chip status-not_recorded">Not checked in</span>{% else %}—{% endif %}</td>
+        <td class="num">{{ row.open_tasks }}</td>
+        <td><span class="status-chip status-{% if row.assignment.status == 'active' %}available{% else %}inactive{% endif %}">{{ row.assignment.get_status_display }}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No crew yet</h3><p>Assign your crew to tasks to get started — they join the project automatically.</p>{% if can_supervise %}<a class="button button-accent" href="{% url 'task_list' project.id %}">Open the task board</a>{% endif %}</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div></div>
+</section>
+{% endblock %}

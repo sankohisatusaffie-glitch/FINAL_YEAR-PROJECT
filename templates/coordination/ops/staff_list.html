@@ -1,0 +1,38 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Team accounts — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="container page-heading-inner">
+    <div>
+      <div class="eyebrow">TEAM ACCOUNTS</div>
+      <h1>Who can sign in</h1>
+      <p>Project managers run projects, supervisors run sites, and workers check their own tasks, attendance and pay.</p>
+    </div>
+    <a class="button button-accent" href="{% url 'staff_create' %}">{% icon 'plus' %} Add an account</a>
+  </div>
+</section>
+<section class="container section">
+  <div class="panel table-panel">
+    <div class="panel-heading"><div><div class="eyebrow">{{ company.name|upper }}</div><h2>{{ staff|length }} team account{{ staff|length|pluralize }}</h2></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Role</th><th>Username</th><th>Contact</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for member in staff %}
+          <tr>
+            <td><strong>{{ member.get_full_name|default:member.username }}</strong>{% if member.worker_profile %}<small class="table-sub">Worker {{ member.worker_profile.worker_id }} · {{ member.worker_profile.primary_trade }}</small>{% endif %}</td>
+            <td>{{ member.get_role_display }}</td>
+            <td>{{ member.username }}</td>
+            <td>{{ member.email }}{% if member.phone %}<small class="table-sub">{{ member.phone }}</small>{% endif %}</td>
+            <td><span class="status-chip status-{% if member.is_active %}available{% else %}inactive{% endif %}">{% if member.is_active %}Active{% else %}Deactivated{% endif %}</span></td>
+            <td>{% if member.role != 'manager' or user.role == 'company' %}<form method="post" action="{% url 'staff_toggle' member.id %}"{% if member.is_active %} data-confirm="Deactivate {{ member.get_full_name|default:member.username }}? They will not be able to sign in." data-confirm-label="Deactivate"{% endif %}>{% csrf_token %}<button class="text-link link-button" type="submit">{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button></form>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No team accounts yet</h3><p>Add a supervisor to start recording attendance on site.</p><a class="button button-outline" href="{% url 'staff_create' %}">Add first account</a></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{{ project.title }} · Sites and phases — BuildLink{% endblock %}
+{% block content %}
+{% include 'coordination/ops/_project_heading.html' %}
+{% include 'coordination/ops/_project_nav.html' %}
+<section class="container section ops-stack">
+  <div class="ops-summary">
+    <div><span>Budget</span><strong>{% if project.budget %}SLE {{ project.budget|floatformat:"2g" }}{% else %}Not set{% endif %}</strong></div>
+    <div><span>Schedule</span><strong>{{ project.start_date|date:'d M Y'|default:'Start TBC' }} → {{ project.expected_end_date|date:'d M Y'|default:'End TBC' }}</strong></div>
+    <div><span>Project manager</span><strong>{{ project.manager|person_name:"Not assigned" }}</strong></div>
+    <div><span>Supervisors</span><strong>{% for supervisor in project.supervisors.all %}{{ supervisor|person_name }}{% if not forloop.last %}, {% endif %}{% empty %}None yet{% endfor %}</strong></div>
+    {% if can_manage %}<a class="text-link" href="{% url 'project_edit' project.id %}">Edit details →</a>{% endif %}
+  </div>
+
+  {% if timeline %}<section class="panel gantt-panel" aria-labelledby="gantt-title">
+    <div class="panel-heading panel-pad"><div><div class="eyebrow">SCHEDULE</div><h2 id="gantt-title">Phase timeline</h2></div><span class="muted">{{ timeline.begin|date:'d M Y' }} – {{ timeline.finish|date:'d M Y' }}</span></div>
+    <div class="gantt" role="table" aria-label="Phase timeline">
+      <div class="gantt-scale" aria-hidden="true">{% for month in timeline.months %}<span style="left:{{ month.left }}%">{{ month.label }}</span>{% endfor %}</div>
+      {% for row in timeline.rows %}<div class="gantt-row" role="row">
+        <span class="gantt-label" role="rowheader">{% if row.phase.is_milestone %}◆ {% endif %}{{ row.phase.name }}</span>
+        <div class="gantt-track" role="cell">
+          {% if timeline.today is not None %}<i class="gantt-today" style="left:{{ timeline.today }}%" aria-hidden="true"></i>{% endif %}
+          {% if row.dated %}{% if row.phase.is_milestone %}<span class="gantt-milestone status-{{ row.phase.status }}" style="left:calc({{ row.left }}% + {{ row.width }}%)" title="{{ row.phase.name }}: {{ row.phase.end_date|date:'d M Y' }}"></span>{% else %}<span class="gantt-bar gantt-{{ row.phase.status }}{% if row.is_late %} is-late{% endif %}" style="left:{{ row.left }}%;width:{{ row.width }}%" title="{{ row.phase.name }}: {{ row.phase.start_date|date:'d M' }} – {{ row.phase.end_date|date:'d M Y' }} · {{ row.phase.progress_percentage }}%"><b style="width:{{ row.phase.progress_percentage }}%"></b></span>{% endif %}
+          {% else %}<span class="gantt-undated">No dates set</span>{% endif %}
+        </div>
+        <span class="gantt-status" role="cell"><span class="status-chip status-{% if row.is_late %}delayed{% else %}{{ row.phase.status }}{% endif %}">{% if row.is_late %}Delayed{% else %}{{ row.phase.get_status_display }}{% endif %}</span></span>
+      </div>{% endfor %}
+      {% if timeline.today is not None %}<p class="gantt-legend"><i class="gantt-today-key"></i> Today · bar fill shows progress</p>{% endif %}
+    </div>
+  </section>{% endif %}
+
+  <div class="panel">
+    <div class="panel-heading panel-pad"><div><div class="eyebrow">WHERE THE WORK HAPPENS</div><h2>Sites</h2></div>{% if can_manage %}<a class="button button-small button-dark" href="{% url 'site_create' project.id %}">{% icon 'plus' %} Add site</a>{% endif %}</div>
+    {% if sites %}<div class="card-list">
+      {% for site in sites %}<article class="list-card">
+        <span class="list-icon" aria-hidden="true">{% icon 'pin' %}</span>
+        <div class="list-card-body"><strong>{{ site.name }}</strong><small>{{ site.address|default:'No address' }}</small>
+          <small>{% if site.has_boundary %}{{ site.latitude }}, {{ site.longitude }} · {{ site.radius_m }} m boundary · {% if site.enforce_geofence %}Clock-in limited to the site{% else %}Boundary not enforced{% endif %}{% else %}No GPS boundary set{% endif %}</small></div>
+        {% if site.has_boundary %}<a class="text-link" href="https://www.openstreetmap.org/?mlat={{ site.latitude }}&amp;mlon={{ site.longitude }}#map=17/{{ site.latitude }}/{{ site.longitude }}" target="_blank" rel="noopener noreferrer">Map ↗</a>{% endif %}
+        {% if can_manage %}<a class="text-link" href="{% url 'site_edit' project.id site.id %}">Edit</a>{% endif %}
+      </article>{% endfor %}
+    </div>{% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No sites yet</h3><p>Add a site with GPS coordinates so workers can clock in on location.</p></div>{% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-heading panel-pad"><div><div class="eyebrow">STAGES OF WORK</div><h2>Phases and milestones</h2></div>{% if can_manage %}<a class="button button-small button-dark" href="{% url 'phase_create' project.id %}">{% icon 'plus' %} Add phase</a>{% endif %}</div>
+    {% if phases %}<ol class="phase-list">
+      {% for phase in phases %}<li class="phase-item{% if phase.is_milestone %} is-milestone{% endif %}">
+        <span class="phase-marker" aria-hidden="true">{% if phase.is_milestone %}◆{% else %}{{ phase.order }}{% endif %}</span>
+        <div class="phase-body">
+          <div class="phase-title"><strong>{{ phase.name }}</strong>{% if phase.is_milestone %}<span class="tag">Milestone</span>{% endif %}<span class="status-chip status-{{ phase.status }}">{{ phase.get_status_display }}</span></div>
+          <small>{{ phase.start_date|date:'d M'|default:'—' }} → {{ phase.end_date|date:'d M Y'|default:'—' }} · {{ phase.task_count }} task{{ phase.task_count|pluralize }}</small>
+          <div class="progress-label"><span>Progress</span><strong>{{ phase.progress_percentage }}%</strong></div>
+          <div class="progress-track" role="progressbar" aria-valuenow="{{ phase.progress_percentage }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ phase.name }} progress"><span style="width:{{ phase.progress_percentage }}%"></span></div>
+        </div>
+        {% if can_manage %}<a class="text-link" href="{% url 'phase_edit' project.id phase.id %}">Edit</a>{% endif %}
+      </li>{% endfor %}
+    </ol>{% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No phases yet</h3><p>Break the project into stages such as Foundation, Walls and Roofing. Phase progress comes from its tasks.</p></div>{% endif %}
+  </div>
+</section>
+{% endblock %}

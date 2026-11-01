@@ -1,0 +1,19 @@
+{% load coordination_tags %}{% comment %}
+Renders one bound field with its label, help text and errors.
+Pass `span=True` to force full width, or `hide_label=True` for a visually hidden label.
+The help/error ids match the aria-describedby values Django adds to the widget.
+{% endcomment %}{% if field.use_fieldset %}<fieldset class="form-field field-span field-fieldset{% if field.errors %} has-error{% endif %}" data-field>
+  <legend{% if hide_label %} class="visually-hidden"{% endif %}>{{ field.label }}{% if field.field.required %}<span class="required" aria-hidden="true">*</span>{% else %}<span class="optional">Optional</span>{% endif %}</legend>
+  <div class="check-grid">{{ field }}</div>
+  {% if field.help_text %}<small class="field-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</small>{% endif %}
+  <small class="field-error" id="{{ field.auto_id }}_error" data-field-error{% if not field.errors %} hidden{% endif %}>{{ field.errors|join:" " }}</small>
+</fieldset>{% elif field.widget_type == 'checkbox' %}<div class="form-field field-check{% if span %} field-span{% endif %}{% if field.errors %} has-error{% endif %}" data-field>
+  {{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% if field.help_text %}<small class="field-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</small>{% endif %}
+  <small class="field-error" id="{{ field.auto_id }}_error" data-field-error{% if not field.errors %} hidden{% endif %}>{{ field.errors|join:" " }}</small>
+</div>{% else %}<div class="form-field{% if span or field|wide_field %} field-span{% endif %}{% if field.errors %} has-error{% endif %}" data-field>
+  <label for="{{ field.id_for_label }}"{% if hide_label %} class="visually-hidden"{% endif %}>{{ field.label }}{% if field.field.required %}{% if field.form.use_required_attribute %}<span class="required" aria-hidden="true">*</span>{% endif %}{% elif not hide_label %}<span class="optional">Optional</span>{% endif %}</label>
+  {{ field }}
+  {% if field.help_text %}<small class="field-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</small>{% endif %}
+  <small class="field-error" id="{{ field.auto_id }}_error" data-field-error{% if not field.errors %} hidden{% endif %}>{{ field.errors|join:" " }}</small>
+</div>{% endif %}

@@ -1,0 +1,19 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Report incident · {{ project.title }} — BuildLink{% endblock %}
+{% block content %}
+<section class="container form-page incident-page">
+  <header class="safety-header">
+    <span class="safety-banner-icon">{% icon 'cone' %}</span>
+    <div>
+      <span class="eyebrow">SAFETY · {{ project.title|upper }}</span>
+      <h1>Report a safety incident</h1>
+      <p>Accidents, near misses and PPE breaches all help prevent the next injury. <strong>High and critical reports alert the project team by SMS straight away.</strong></p>
+    </div>
+  </header>
+  <form method="post" enctype="multipart/form-data" class="form-card" data-validate>{% csrf_token %}
+    {% include 'coordination/_form_alert.html' %}
+    {% include 'coordination/_form_sections.html' %}
+    <footer class="form-card-footer"><p class="form-legend"><span class="required" aria-hidden="true">*</span> Required field</p><div class="form-card-actions"><a class="button button-quiet" href="{% url 'project_incidents' project.id %}">Cancel</a><button class="button button-danger" type="submit">{% icon 'alert' %} Submit report</button></div></footer>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}My work — BuildLink{% endblock %}
+{% block content %}
+<section class="dashboard-heading"><div class="container dashboard-heading-inner"><div><div class="eyebrow">{{ worker.worker_id }}</div><h1>Hello, {{ worker.first_name }}.</h1><p>{% trade_badge worker.primary_trade %}</p></div></div></section>
+<section class="container dashboard-content field-home">
+  <div class="sync-strip" data-sync-strip role="status"><span class="sync-strip-icon">{% icon 'sync' %}</span><span data-sync-strip-text>Online · everything is synced</span></div>
+
+  <a class="clock-banner{% if today_record and today_record.is_open %} is-on-site{% elif today_record and today_record.clock_out %} is-done{% endif %}" href="{% url 'clock_page' %}">
+    <span class="clock-banner-icon">{% icon 'clock' %}</span>
+    <span><strong>{% if today_record and today_record.is_open %}On site since {{ today_record.clock_in|time:'H:i' }}{% elif today_record and today_record.clock_out %}Done today · {{ today_record.hours_worked }} h{% else %}Clock in{% endif %}</strong><small>{% if today_record and today_record.is_open %}Tap to clock out{% elif today_record and today_record.clock_out %}See you tomorrow{% else %}You must be at the site{% endif %}</small></span>
+    {% icon 'chevron' %}
+  </a>
+
+  <div class="field-split">
+    <section class="panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">TODAY</div><h2>My tasks</h2></div><span class="count-badge">{{ today_tasks|length }}</span></div>
+      {% if today_tasks %}<div class="field-task-list">{% for task in today_tasks %}<a class="field-task" href="{% url 'task_detail' task.project.id task.id %}">
+        <span class="priority-dot priority-{{ task.priority }}" aria-hidden="true"></span>
+        <span class="field-task-copy"><strong>{{ task.title }}</strong><small>{{ task.project.title }}{% if task.site %} · {{ task.site.name }}{% endif %}{% if task.is_overdue %} · <b class="overdue">Overdue</b>{% elif task.due_date %} · due {{ task.due_date|date:'d M' }}{% endif %}</small>
+          <span class="kanban-progress"><span style="width:{{ task.progress_percentage }}%"></span></span></span>
+        <span class="field-task-pct">{{ task.progress_percentage }}%</span>
+      </a>{% endfor %}</div>
+      {% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>Nothing due today</h3><p>Your supervisor will assign your next task.</p></div>{% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">COMING UP</div><h2>Schedule</h2></div></div>
+      {% if schedule %}<ol class="schedule-list">{% regroup schedule by due_date as days %}{% for day in days %}<li>
+        <div class="schedule-date"><strong>{{ day.grouper|date:'d' }}</strong><span>{{ day.grouper|date:'D M' }}</span></div>
+        <div class="schedule-items">{% for task in day.list %}<a href="{% url 'task_detail' task.project.id task.id %}"><strong>{{ task.title }}</strong><small>{{ task.project.title }}</small></a>{% endfor %}</div>
+      </li>{% endfor %}</ol>
+      {% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No upcoming work</h3><p>Future tasks with deadlines show here.</p></div>{% endif %}
+    </section>
+  </div>
+
+  <div class="stats-grid stats-grid-three">
+    <div class="stat-card"><span>Hours this month</span><strong>{{ month_hours|floatformat:"-1" }}</strong><small>From clock-in records</small></div>
+    <div class="stat-card"><span>Tasks completed</span><strong>{{ completed_task_count }}</strong><small>{{ open_tasks|length }} still open</small></div>
+    <a class="stat-card stat-card-link" href="{% url 'my_pay' %}"><span>Daily rate</span><strong>{{ worker.daily_rate|floatformat:"0g" }}</strong><small>Leones per 8-hour day</small></a>
+  </div>
+
+  <div class="field-split">
+    <section class="panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">PAY</div><h2>My payslips</h2></div><a class="text-link" href="{% url 'my_pay' %}">All →</a></div>
+      {% if recent_pay %}<div class="compact-list">{% for record in recent_pay %}<a class="compact-list-item" href="{% url 'payroll_detail' record.id %}"><span class="list-icon">{% icon 'wallet' %}</span><span><strong>SLE {{ record.net_pay|floatformat:"2g" }}</strong><small>{{ record.period_start|date:'d M' }} – {{ record.period_end|date:'d M Y' }}</small></span><span class="status-chip status-{{ record.status }}">{{ record.get_status_display }}</span></a>{% endfor %}</div>
+      {% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No payslips yet</h3><p>Payslips appear once your manager approves them.</p></div>{% endif %}
+    </section>
+    <section class="panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">FROM THE OFFICE</div><h2>Announcements</h2></div><a class="text-link" href="{% url 'announcement_list' %}">All →</a></div>
+      {% if announcements %}<div class="compact-list">{% for item in announcements %}<div class="compact-list-item"><span class="list-icon">{% icon 'megaphone' %}</span><span><strong>{{ item.title }}</strong><small>{{ item.body|truncatechars:90 }}</small></span></div>{% endfor %}</div>
+      {% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>Nothing new</h3><p>Notices from the office show here.</p></div>{% endif %}
+    </section>
+  </div>
+</section>
+{% endblock %}

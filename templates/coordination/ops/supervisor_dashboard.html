@@ -1,0 +1,34 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Site supervisor — BuildLink{% endblock %}
+{% block content %}
+<section class="dashboard-heading"><div class="container dashboard-heading-inner"><div><div class="eyebrow">SITE SUPERVISOR</div><h1>Good {% now 'A' as meridiem %}{% if meridiem == 'AM' %}morning{% else %}afternoon{% endif %}, {{ user.first_name|default:user.username }}.</h1><p>Check your crew in, keep tasks moving, and report from site.</p></div></div></section>
+<section class="container dashboard-content field-home">
+  <div class="sync-strip" data-sync-strip role="status"><span class="sync-strip-icon">{% icon 'sync' %}</span><span data-sync-strip-text>Online · everything is synced</span></div>
+
+  {% for row in project_rows %}
+  <article class="field-project">
+    <header class="field-project-head">
+      <div><span class="eyebrow">PROJECT</span><h2><a href="{% url 'project_detail' row.project.id %}">{{ row.project.title }}</a></h2><p>{% icon 'pin' %}{{ row.project.location }}</p></div>
+      <div class="field-project-stat"><strong>{{ row.present }}<span>/{{ row.team }}</span></strong><small>present today</small></div>
+    </header>
+    <nav class="field-actions" aria-label="Site actions for {{ row.project.title }}">
+      <a class="field-action field-action-primary" href="{% url 'attendance_scanner' row.project.id %}">{% icon 'qr' %}<span>Scan QR</span></a>
+      <a class="field-action" href="{% url 'attendance_board' row.project.id %}">{% icon 'clock' %}<span>Mark attendance</span></a>
+      <a class="field-action" href="{% url 'site_report_create' row.project.id %}">{% icon 'clipboard' %}<span>Daily report</span></a>
+      <a class="field-action field-action-danger" href="{% url 'incident_create' row.project.id %}">{% icon 'cone' %}<span>Report incident</span></a>
+      <a class="field-action" href="{% url 'material_create' row.project.id %}">{% icon 'toolbox' %}<span>Request materials</span></a>
+      <a class="field-action" href="{% url 'task_list' row.project.id %}">{% icon 'board' %}<span>Tasks <b>{{ row.open_tasks }}</b></span></a>
+    </nav>
+  </article>
+  {% empty %}
+  <div class="panel"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No projects assigned</h3><p>A project manager will add you as a supervisor on a project.</p></div></div>
+  {% endfor %}
+
+  <div class="stats-grid stats-grid-three">
+    <div class="stat-card"><span>Reports filed today</span><strong>{{ my_reports_today }}</strong><small>Daily site reports</small></div>
+    <a class="stat-card stat-card-link" href="{% url 'material_list' %}?status=pending"><span>Your pending requests</span><strong>{{ pending_requests }}</strong><small>Awaiting manager approval</small></a>
+    <a class="stat-card stat-card-link" href="{% url 'incident_list' %}"><span>Open incidents</span><strong>{{ open_incidents }}</strong><small>On your projects</small></a>
+  </div>
+  {% if project_rows %}<section class="panel chart-panel">{% include 'coordination/_column_chart.html' with chart=attendance_chart title="Attendance on your sites" subtitle="Workers present per day, last 14 days" table_label="Day" %}</section>{% endif %}
+</section>
+{% endblock %}

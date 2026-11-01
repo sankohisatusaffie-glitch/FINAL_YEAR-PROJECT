@@ -1,0 +1,66 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{{ project.title }} · Tasks — BuildLink{% endblock %}
+{% block content %}
+{% include 'coordination/ops/_project_heading.html' %}
+{% include 'coordination/ops/_project_nav.html' %}
+<section class="container section ops-stack">
+  <div class="toolbar">
+    <nav class="segmented" aria-label="Task view">
+      <a href="?view=board"{% if view_mode == 'board' %} aria-current="true"{% endif %}>{% icon 'board' %} Board</a>
+      <a href="?view=list"{% if view_mode == 'list' %} aria-current="true"{% endif %}>{% icon 'list' %} List</a>
+    </nav>
+    {% if can_supervise %}<a class="button button-dark button-small" href="{% url 'task_create' project.id %}">{% icon 'plus' %} Add task</a>{% endif %}
+  </div>
+
+  {% if view_mode == 'board' %}
+  <p class="board-hint muted">{% if can_supervise %}Drag cards between columns, or use “Move to” on a card.{% else %}Use “Move to” on your own tasks to update their status.{% endif %}</p>
+  <div class="kanban" data-kanban>
+    {% for column in columns %}
+    <section class="kanban-column kanban-{{ column.status }}" data-kanban-column="{{ column.status }}" aria-labelledby="col-{{ column.status }}">
+      <header class="kanban-column-head"><h2 id="col-{{ column.status }}">{{ column.label }}</h2><span class="kanban-count" data-kanban-count>{{ column.tasks|length }}</span></header>
+      <div class="kanban-cards" data-kanban-dropzone>
+        {% for task in column.tasks %}
+        <article class="kanban-card{% if task.is_overdue %} is-overdue{% endif %}" data-kanban-card data-move-url="{% url 'task_move' project.id task.id %}" {% if can_supervise %}draggable="true"{% endif %}>
+          <div class="kanban-card-top"><span class="priority priority-{{ task.priority }}">{{ task.get_priority_display }}</span>{% if task.phase %}<span class="kanban-phase">{{ task.phase.name }}</span>{% endif %}</div>
+          <h3><a href="{% url 'task_detail' project.id task.id %}">{{ task.title }}</a></h3>
+          {% if task.required_skill %}<p class="kanban-skill">{% icon 'hardhat' %} {{ task.required_skill.name }}</p>{% endif %}
+          <div class="kanban-progress" aria-label="{{ task.progress_percentage }}% complete"><span style="width:{{ task.progress_percentage }}%"></span></div>
+          <footer class="kanban-card-foot">
+            <span class="avatar-stack">{% for assignment in task.assignments.all|slice:':4' %}<span class="worker-avatar" title="{{ assignment.worker.full_name }}">{{ assignment.worker.first_name|slice:':1'|upper }}{{ assignment.worker.last_name|slice:':1'|upper }}</span>{% empty %}<span class="avatar-empty">Unassigned</span>{% endfor %}{% if task.assignments.all|length > 4 %}<span class="worker-avatar avatar-more">+{{ task.assignments.all|length|add:'-4' }}</span>{% endif %}</span>
+            <span class="kanban-due{% if task.is_overdue %} overdue{% endif %}">{% icon 'calendar' %}{% if task.due_date %}{{ task.due_date|date:'d M' }}{% else %}No date{% endif %}</span>
+          </footer>
+          <form class="kanban-move" method="post" action="{% url 'task_move' project.id task.id %}">{% csrf_token %}
+            <label class="visually-hidden" for="move-{{ task.id }}">Move {{ task.title }} to</label>
+            <select id="move-{{ task.id }}" name="status" data-kanban-move>{% for value, label in status_choices %}<option value="{{ value }}"{% if value == task.status %} selected{% endif %}>{% if value == task.status %}{{ label }}{% else %}Move to {{ label|lower }}{% endif %}</option>{% endfor %}</select>
+            <button class="button button-small button-quiet" type="submit">Move</button>
+          </form>
+        </article>
+        {% empty %}
+        <div class="kanban-empty" data-kanban-empty>{% if column.status == 'pending' %}No tasks yet – assign your crew to get started.{% elif column.status == 'in_progress' %}Nothing in progress.{% else %}Nothing completed yet.{% endif %}</div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="panel table-panel"><div class="table-wrap"><table>
+    <thead><tr><th>Task</th><th>Priority</th><th>Assigned</th><th>Deadline</th><th>Progress</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for task in tasks %}
+      <tr>
+        <td><a class="table-link" href="{% url 'task_detail' project.id task.id %}">{{ task.title }}</a><small class="table-sub">{% if task.phase %}{{ task.phase.name }}{% else %}No phase{% endif %}{% if task.required_skill %} · Needs {{ task.required_skill.name }}{% endif %}</small></td>
+        <td><span class="priority priority-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
+        <td>{% for assignment in task.assignments.all %}{{ assignment.worker.full_name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">Nobody yet</span>{% endfor %}</td>
+        <td>{% if task.due_date %}<span{% if task.is_overdue %} class="overdue"{% endif %}>{{ task.due_date|date:'d M Y' }}{% if task.is_overdue %} · Overdue{% endif %}</span>{% else %}—{% endif %}</td>
+        <td class="progress-cell"><div class="progress-track" role="progressbar" aria-valuenow="{{ task.progress_percentage }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ task.title }} progress"><span style="width:{{ task.progress_percentage }}%"></span></div><small>{{ task.progress_percentage }}%</small></td>
+        <td><span class="status-chip status-{% if task.is_overdue %}delayed{% else %}{{ task.status }}{% endif %}">{% if task.is_overdue %}Delayed{% else %}{{ task.get_status_display }}{% endif %}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No tasks yet</h3><p>{% if can_supervise %}Assign your crew to get started: add a task with a skill, deadline and priority.{% else %}Tasks assigned to you will appear here.{% endif %}</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div></div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Payroll — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="container page-heading-inner">
+    <div><div class="eyebrow">PAYROLL</div><h1>Wages from attendance</h1><p>Pay = hours worked ÷ 8 × daily rate. Approve each payslip, then pay by Orange Money or Afrimoney.</p></div>
+    {% if records %}<a class="button button-outline" href="{% url 'payroll_export' %}{% if selected_start %}?start={{ selected_start }}&amp;end={{ selected_end }}{% endif %}">{% icon 'download' %} Download CSV</a>{% endif %}
+  </div>
+</section>
+<section class="container section ops-stack">
+  <div class="ops-columns ops-columns-wide">
+    <form method="post" class="panel form-panel" data-validate>{% csrf_token %}
+      <div class="eyebrow">CALCULATE</div><h2>Generate payroll for a period</h2>
+      <p class="muted">Re-running a period refreshes draft payslips. Approved and paid payslips are never changed.</p>
+      {% include 'coordination/_form_alert.html' %}
+      <div class="field-grid">{% for field in form %}{% include 'coordination/_field.html' %}{% endfor %}</div>
+      <div class="form-actions"><button class="button button-dark" type="submit">Calculate payroll</button></div>
+    </form>
+    <div class="panel">
+      <div class="panel-heading panel-pad"><div><div class="eyebrow">HISTORY</div><h2>Pay periods</h2></div></div>
+      {% if periods %}<div class="compact-list">{% for period in periods %}<a class="compact-list-item" href="?start={{ period.period_start|date:'Y-m-d' }}&amp;end={{ period.period_end|date:'Y-m-d' }}"><span class="list-icon" aria-hidden="true">{% icon 'wallet' %}</span><span><strong>{{ period.period_start|date:'d M' }} – {{ period.period_end|date:'d M Y' }}</strong><small>{{ period.count }} worker{{ period.count|pluralize }} · SLE {{ period.net|floatformat:"2g" }}</small></span></a>{% endfor %}</div>
+      {% else %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No payroll yet</h3><p>Calculate the first period once workers have clocked in and out.</p></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="panel table-panel">
+    <div class="panel-heading"><div><div class="eyebrow">{% if selected_start %}{{ selected_start }} to {{ selected_end }}{% else %}ALL PERIODS{% endif %}</div><h2>Payslips</h2></div>
+      {% if totals.net %}<div class="total-chip"><span>{{ totals.hours|floatformat:"-2" }} h</span><strong>SLE {{ totals.net|floatformat:"2g" }} net</strong></div>{% endif %}</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Worker</th><th>Period</th><th class="num">Days</th><th class="num">Hours</th><th class="num">Daily rate</th><th class="num">Gross</th><th class="num">Net</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for record in records %}
+        <tr>
+          <td><a class="table-link" href="{% url 'payroll_detail' record.id %}">{{ record.worker.full_name }}</a><small class="table-sub">{{ record.worker.worker_id }}</small></td>
+          <td>{{ record.period_start|date:'d M' }} – {{ record.period_end|date:'d M Y' }}</td>
+          <td class="num">{{ record.days_present }}</td>
+          <td class="num">{{ record.hours_worked }}</td>
+          <td class="num">{{ record.daily_rate|floatformat:"2g" }}</td>
+          <td class="num">{{ record.gross_pay|floatformat:"2g" }}</td>
+          <td class="num"><strong>{{ record.net_pay|floatformat:"2g" }}</strong></td>
+          <td><span class="status-chip status-{{ record.status }}">{{ record.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No payslips for this view</h3><p>Choose a pay period above and calculate payroll.</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</section>
+{% endblock %}

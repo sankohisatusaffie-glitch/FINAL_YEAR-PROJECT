@@ -1,0 +1,35 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Safety incidents — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="container page-heading-inner">
+    <div><div class="eyebrow">SAFETY</div><h1>Incidents and near misses</h1><p>Every report helps prevent the next injury. High and critical incidents alert the project team by SMS and email.</p></div>
+    {% if projects %}<details class="dropdown"><summary class="button button-accent">{% icon 'cone' %} Report an incident</summary><div class="dropdown-menu">{% for project in projects %}<a href="{% url 'incident_create' project.id %}">{{ project.title }}</a>{% endfor %}</div></details>{% endif %}
+  </div>
+</section>
+<section class="container section ops-stack">
+  {% if summary %}<div class="tag-row">{% for label, count in summary %}<span class="tag">{{ label }}: {{ count }}</span>{% endfor %}</div>{% endif %}
+  <form method="get" class="filter-bar">
+    <select name="status" aria-label="Status"><option value="">Any status</option>{% for value, label in status_choices %}<option value="{{ value }}"{% if filters.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select name="severity" aria-label="Severity"><option value="">Any severity</option>{% for value, label in severity_choices %}<option value="{{ value }}"{% if filters.severity == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <button class="button button-dark button-small" type="submit">Filter</button><a class="subtle-link" href="{% url 'incident_list' %}">Reset</a>
+  </form>
+  <div class="panel table-panel"><div class="table-wrap"><table>
+    <thead><tr><th>Incident</th><th>Project</th><th>Severity</th><th>When</th><th>Reported by</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for incident in incidents %}
+      <tr>
+        <td><a class="table-link" href="{% url 'incident_detail' incident.id %}">{{ incident.get_kind_display }}</a><small class="table-sub">{{ incident.description|truncatechars:70 }}</small></td>
+        <td>{{ incident.project.title }}{% if incident.site %}<small class="table-sub">{{ incident.site.name }}</small>{% endif %}</td>
+        <td><span class="severity severity-{{ incident.severity }}">{{ incident.get_severity_display }}</span></td>
+        <td>{{ incident.occurred_at|date:'d M Y H:i' }}</td>
+        <td>{{ incident.reported_by|person_name }}</td>
+        <td><span class="status-chip status-{{ incident.status }}">{{ incident.get_status_display }}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No incidents recorded</h3><p>Report accidents, near misses and PPE breaches from a project's page.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div></div>
+</section>
+{% endblock %}

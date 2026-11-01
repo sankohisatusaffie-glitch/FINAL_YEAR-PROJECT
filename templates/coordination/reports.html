@@ -1,0 +1,56 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}Reports — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="container page-heading-inner">
+    <div>
+      <div class="eyebrow">{% if company %}COMPANY REPORTS{% else %}PLATFORM ANALYTICS{% endif %}</div>
+      <h1>{% if company %}Workforce and project reports{% else %}Coordination at a glance{% endif %}</h1>
+      <p>{{ start_date|date:'d M Y' }} – {{ end_date|date:'d M Y' }}{% if selected_project %} · {{ selected_project.title }}{% else %} · all projects{% endif %}</p>
+    </div>
+    <div class="report-exports no-print">
+      <button class="button button-outline" type="button" data-print>{% icon 'print' %} Export PDF</button>
+      <a class="button button-dark" href="{% url 'reports_export' %}?{{ export_query }}">{% icon 'download' %} Export Excel</a>
+    </div>
+  </div>
+</section>
+<section class="container dashboard-content ops-stack">
+  <form method="get" class="filter-bar report-filters no-print" aria-label="Report filters">
+    <label class="filter-field"><span>From</span><input type="date" name="start" value="{{ start_date|date:'Y-m-d' }}"></label>
+    <label class="filter-field"><span>To</span><input type="date" name="end" value="{{ end_date|date:'Y-m-d' }}"></label>
+    <label class="filter-field"><span>Project</span><select name="project"><option value="">All projects</option>{% for project in projects %}<option value="{{ project.pk }}"{% if selected_project and selected_project.pk == project.pk %} selected{% endif %}>{{ project.title }}</option>{% endfor %}</select></label>
+    <button class="button button-dark button-small" type="submit">Apply</button>
+    <a class="subtle-link" href="{% url 'reports' %}">Last 30 days</a>
+  </form>
+
+  <div class="kpi-grid kpi-grid-four">
+    <div class="kpi-card"><span class="kpi-icon">{% icon 'hardhat' %}</span><span class="kpi-label">Worker-days</span><strong class="kpi-value">{{ period_worker_days }}</strong><small>Days worked in the period</small></div>
+    <div class="kpi-card"><span class="kpi-icon">{% icon 'clock' %}</span><span class="kpi-label">Hours worked</span><strong class="kpi-value">{{ period_hours|floatformat:"0g" }}</strong><small>From clock-in records</small></div>
+    <div class="kpi-card"><span class="kpi-icon">{% icon 'wallet' %}</span><span class="kpi-label">Labour cost</span><strong class="kpi-value">{{ period_cost|compact_sle }}</strong><small>Hours ÷ 8 × daily rate</small></div>
+    <div class="kpi-card{% if incident_summary %} is-alert{% endif %}"><span class="kpi-icon kpi-icon-alert">{% icon 'cone' %}</span><span class="kpi-label">Safety incidents</span><strong class="kpi-value">{{ incidents.count }}</strong><small>Reported in the period</small></div>
+  </div>
+
+  <div class="ops-row">
+    <section class="panel chart-panel">{% include 'coordination/_column_chart.html' with chart=attendance_chart title="Attendance trend" subtitle="Workers present in the selected period" table_label="Day" %}</section>
+    <section class="panel chart-panel">{% include 'coordination/_column_chart.html' with chart=labour_chart title="Labour cost" subtitle="Wages earned per month from attendance (SLE)" table_label="Month" %}</section>
+  </div>
+
+  <div class="ops-row">
+    <section class="panel table-panel"><div class="panel-heading"><div><div class="eyebrow">SELECTED PERIOD</div><h2>Labour by project</h2></div></div><div class="table-wrap"><table><thead><tr><th>Project</th><th class="num">Worker-days</th><th class="num">Hours</th><th class="num">Cost (SLE)</th></tr></thead><tbody>{% for row in labour_by_project %}<tr><td>{{ row.project__title }}</td><td class="num">{{ row.days }}</td><td class="num">{{ row.hours|floatformat:"-1" }}</td><td class="num">{{ row.cost|floatformat:"0g" }}</td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No attendance in this period</h3><p>Choose a wider date range or another project.</p></div></td></tr>{% endfor %}</tbody></table></div></section>
+    <section class="panel table-panel"><div class="panel-heading"><div><div class="eyebrow">SAFETY</div><h2>Incidents by type</h2></div></div><div class="table-wrap"><table><thead><tr><th>Type</th><th class="num">Reports</th></tr></thead><tbody>{% for row in incident_summary %}<tr><td>{{ row.label }}</td><td class="num">{{ row.count }}</td></tr>{% empty %}<tr><td colspan="2"><div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No incidents reported</h3><p>Nothing recorded in this period.</p></div></td></tr>{% endfor %}</tbody></table></div></section>
+  </div>
+
+  <div class="ops-row">
+    <section class="panel table-panel"><div class="panel-heading"><div><div class="eyebrow">WORKFORCE MIX</div><h2>Workers by trade</h2></div><span class="count-badge">{{ workers.count }}</span></div>
+      <div class="trade-mix">{% for item in trade_counts %}<div class="trade-mix-row">{% trade_badge item.primary_trade %}<span class="trade-mix-bar"><span style="width:{% widthratio item.count workers.count 100 %}%"></span></span><b>{{ item.count }}</b></div>{% empty %}<div class="empty-state"><span class="empty-icon" aria-hidden="true"></span><h3>No workers yet</h3></div>{% endfor %}</div>
+    </section>
+    <section class="panel table-panel"><div class="panel-heading"><div><div class="eyebrow">CLIENT NEEDS</div><h2>Most requested services</h2></div><span class="muted">Avg rating {% if average_rating %}{{ average_rating|floatformat:1 }} ★{% else %}—{% endif %}</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Service</th><th class="num">Requests</th></tr></thead><tbody>{% for service in service_demand %}<tr><td>{{ service.name }}</td><td class="num">{{ service.request_count }}</td></tr>{% empty %}<tr><td colspan="2" class="muted">No requests yet.</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+  </div>
+
+  <section class="panel table-panel"><div class="panel-heading"><div><div class="eyebrow">DELIVERY</div><h2>Projects</h2></div></div><div class="table-wrap"><table><thead><tr><th>Project</th>{% if not company %}<th>Company</th>{% endif %}<th>Client</th><th>Status</th><th>Progress</th></tr></thead><tbody>{% for project in projects %}<tr><td><a class="table-link" href="{% url 'project_detail' project.id %}">{{ project.title }}</a></td>{% if not company %}<td>{{ project.company.name }}</td>{% endif %}<td>{{ project.client|person_name:"No client linked" }}</td><td><span class="status-chip status-{{ project.status }}">{{ project.get_status_display }}</span></td><td class="progress-cell"><div class="progress-track"><span style="width:{{ project.progress_percentage }}%"></span></div><small>{{ project.progress_percentage }}%</small></td></tr>{% empty %}<tr><td colspan="5" class="muted">No projects have been created.</td></tr>{% endfor %}</tbody></table></div></section>
+
+  {% if not company %}<section class="panel table-panel"><div class="panel-heading"><div><div class="eyebrow">NETWORK</div><h2>Companies</h2></div></div><div class="table-wrap"><table><thead><tr><th>Company</th><th>Status</th><th class="num">Workers</th><th class="num">Projects</th></tr></thead><tbody>{% for item in companies %}<tr><td>{{ item.name }}</td><td><span class="status-chip status-{{ item.status }}">{{ item.get_status_display }}</span></td><td class="num">{{ item.workers.count }}</td><td class="num">{{ item.projects.count }}</td></tr>{% empty %}<tr><td colspan="4" class="muted">No companies yet.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
+</section>
+{% endblock %}

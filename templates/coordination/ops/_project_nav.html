@@ -1,0 +1,11 @@
+{% load coordination_tags %}{% comment %}Project tabs. Needs `project`, `active_tab`, `nav_manage` and `nav_supervise` in context.{% endcomment %}
+<nav class="container project-tabs" aria-label="Project sections">
+  <a href="{% url 'project_detail' project.id %}"{% if active_tab == 'overview' %} aria-current="page"{% endif %}>{% icon 'home' %}Overview</a>
+  <a href="{% url 'project_plan' project.id %}"{% if active_tab == 'plan' %} aria-current="page"{% endif %}>{% icon 'blueprint' %}Phases</a>
+  {% if user.role != 'client' %}<a href="{% url 'task_list' project.id %}"{% if active_tab == 'tasks' %} aria-current="page"{% endif %}>{% icon 'board' %}Tasks</a>
+  <a href="{% url 'project_workers' project.id %}"{% if active_tab == 'workers' %} aria-current="page"{% endif %}>{% icon 'hardhat' %}Workers</a>{% endif %}
+  {% if nav_supervise %}<a href="{% url 'attendance_board' project.id %}"{% if active_tab == 'attendance' %} aria-current="page"{% endif %}>{% icon 'clock' %}Attendance</a>{% endif %}
+  <a href="{% url 'site_report_list' project.id %}"{% if active_tab == 'reports' %} aria-current="page"{% endif %}>{% icon 'clipboard' %}Reports</a>
+  {% if nav_supervise %}<a href="{% url 'project_materials' project.id %}"{% if active_tab == 'materials' %} aria-current="page"{% endif %}>{% icon 'toolbox' %}Materials</a>{% endif %}
+  {% if user.role != 'client' and user.role != 'admin' %}<a href="{% url 'project_incidents' project.id %}"{% if active_tab == 'incidents' %} aria-current="page"{% endif %}>{% icon 'cone' %}Incidents</a>{% endif %}
+</nav>

@@ -1,0 +1,32 @@
+{% extends 'coordination/base.html' %}{% load coordination_tags %}
+{% block title %}{{ incident.get_kind_display }} — BuildLink{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="container"><div class="eyebrow"><a href="{% url 'incident_list' %}">INCIDENTS</a> / INCIDENT {{ incident.id }}</div><div class="detail-title-row"><div><h1>{{ incident.get_kind_display }}</h1><p>{{ incident.project.title }}{% if incident.site %} · {{ incident.site.name }}{% endif %} · {{ incident.occurred_at|date:'d M Y, H:i' }}</p></div><span class="status-pill status-{{ incident.status }}"><span></span>{{ incident.get_status_display }}</span></div></div></section>
+<section class="container detail-layout">
+  <div class="detail-main">
+    <article class="panel detail-card">
+      <div class="panel-heading"><div><div class="eyebrow">WHAT HAPPENED</div><h2>Incident report</h2></div><span class="severity severity-{{ incident.severity }}">{{ incident.get_severity_display }} severity</span></div>
+      <p class="long-copy">{{ incident.description|linebreaksbr }}</p>
+      <div class="detail-facts">
+        <div><small>PPE worn correctly</small><strong>{% if incident.ppe_compliant is None %}Not applicable{% elif incident.ppe_compliant %}Yes{% else %}No — PPE breach{% endif %}</strong></div>
+        <div><small>Reported by</small><strong>{{ incident.reported_by|person_name }}</strong></div>
+        <div><small>Workers involved</small><strong>{% for worker in incident.workers_involved.all %}{{ worker.full_name }}{% if not forloop.last %}, {% endif %}{% empty %}None recorded{% endfor %}</strong></div>
+        <div><small>Logged</small><strong>{{ incident.created_at|date:'d M Y H:i' }}</strong></div>
+      </div>
+      {% if incident.action_taken %}<div class="detail-note"><small>Action taken</small><p>{{ incident.action_taken|linebreaksbr }}</p></div>{% endif %}
+      {% if incident.photo %}<a class="incident-photo" href="{% url 'operations_file' 'incident-photo' incident.id %}" target="_blank" rel="noopener"><img src="{% url 'operations_file' 'incident-photo' incident.id %}" alt="Photo of the incident"></a>{% endif %}
+    </article>
+  </div>
+  <aside class="detail-aside">
+    {% if can_update %}<div class="panel action-panel">
+      <div class="eyebrow">FOLLOW-UP</div><h3>Investigate and close</h3>
+      <form method="post" class="form-stack" data-validate>{% csrf_token %}
+        {% include 'coordination/_form_alert.html' %}
+        {% for field in form %}{% include 'coordination/_field.html' %}{% endfor %}
+        <button class="button button-accent button-full" type="submit">Save update</button>
+      </form>
+    </div>{% endif %}
+    {% if incident.closed_by %}<div class="aside-note"><span>✓</span><p><strong>Closed by {{ incident.closed_by|person_name }}</strong></p></div>{% endif %}
+  </aside>
+</section>
+{% endblock %}
